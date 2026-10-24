@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  db: 
+    image: postgres:latest
+    container_name: campusloop-db
+    restart: always
+    environment:
+      POSTGRES_DB: campusloop
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
