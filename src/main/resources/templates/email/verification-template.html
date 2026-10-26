@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f7;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+        .code-box {
+            background: #f0f4f8;
+            color: #1d4ed8;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            margin: 25px 0;
+            border-radius: 6px;
+            letter-spacing: 4px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #888888;
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">Welcome to CampusLoop!</div>
+    <p>Please use the verification code below to complete your account registration. This code is valid for 15 minutes.</p>
+
+    <div class="code-box">{{code}}</div>
+
+    <p>If you didn't request this, please ignore this email.</p>
+
+    <div class="footer">
+        &copy; 2026 CampusLoop. All rights reserved.
+    </div>
+</div>
+</body>
+</html>
