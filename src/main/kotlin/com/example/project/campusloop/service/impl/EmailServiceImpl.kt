@@ -9,29 +9,37 @@ import org.springframework.stereotype.Service
 import java.nio.charset.StandardCharsets
 
 @Service
-class EmailServiceImpl(
+class EmailServiceImpl (
     private val mailSender: JavaMailSender,
     private val resourceLoader: ResourceLoader
 ) : EmailService {
     override fun sendVerificationEmail(toEmail: String, code: String) {
+        val htmlContent = loadEmailTemplate("classpath:templates/email/verification-template.html", code)
+        sendHtmlEmail(toEmail, "CampusLoop - Account Verification Code", htmlContent)
+    }
+
+    override fun sendPasswordResetEmail(toEmail: String, code: String) {
+        val htmlContent = loadEmailTemplate("classpath:templates/email/password-reset-template.html", code)
+        sendHtmlEmail(toEmail, "CampusLoop - Password Reset", htmlContent)
+    }
+
+    private fun sendHtmlEmail(toEmail: String, subject: String, htmlContent: String) {
         try {
             val mimeMessage: MimeMessage = mailSender.createMimeMessage()
             val helper = MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name())
 
-            val htmlContent = loadTemplateEmail(code)
-
             helper.setTo(toEmail)
-            helper.setSubject("CampusLoop - Account Verification Code")
+            helper.setSubject(subject)
             helper.setText(htmlContent, true)
 
             mailSender.send(mimeMessage)
         } catch (e: Exception) {
-            throw IllegalStateException("Failed to send verification email to $toEmail", e)
+            throw IllegalStateException("Failed to send email to $toEmail", e)
         }
     }
 
-    private fun loadTemplateEmail(code: String): String {
-        val resource = resourceLoader.getResource("classpath:templates/email/verification-template.html")
+    private fun loadEmailTemplate(templatePath: String, code: String): String {
+        val resource = resourceLoader.getResource(templatePath)
         val templateText = resource.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
 
         return templateText.replace("{{code}}", code)
