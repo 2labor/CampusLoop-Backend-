@@ -43,4 +43,12 @@ class AccountServiceImpl(
     override fun findByCredentials(credential: String): Account? {
         return repository.findByLogin(credential) ?: repository.findByEmail(credential)
     }
+
+    override fun markAsVerified(accountId: UUID) {
+        val account = repository.findByIdOrNull(accountId)
+            ?: throw IllegalArgumentException("Account with id $accountId does not exist.")
+
+        account.isVerified = true
+        repository.save(account)
+    }
 }

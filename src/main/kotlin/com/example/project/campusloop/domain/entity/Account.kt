@@ -37,4 +37,7 @@ class Account(
     @OneToOne(cascade = [CascadeType.ALL])
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     val user: User,
+
+    @Column(name = "is_verified", nullable = false)
+    var isVerified: Boolean = false
 )
