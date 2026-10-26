@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
-class AccountServiceImpl(
+class AccountServiceImpl (
     private val repository: AccountRepository
 ) : AccountService {
 
@@ -49,6 +49,14 @@ class AccountServiceImpl(
             ?: throw IllegalArgumentException("Account with id $accountId does not exist.")
 
         account.isVerified = true
+        repository.save(account)
+    }
+
+    @Override
+    override fun updatePassword(accountId: UUID, newPasswordHash: String) {
+        val account = repository.findByIdOrNull(accountId) ?: throw IllegalArgumentException("Account with id $accountId does not exist.")
+
+        account.passwordHash = newPasswordHash
         repository.save(account)
     }
 }

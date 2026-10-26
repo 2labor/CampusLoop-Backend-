@@ -10,4 +10,5 @@ interface AccountService {
     fun getAccountById(userId: UUID): Account?
     fun findByCredentials(credential: String): Account?
     fun markAsVerified(accountId: UUID)
+    fun updatePassword(accountId: UUID, newPasswordHash: String)
 }
