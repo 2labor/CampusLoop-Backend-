@@ -1,6 +1,7 @@
 package com.example.project.campusloop.domain.request
 
 import com.example.project.campusloop.domain.enum.AuthProvider
+import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import jakarta.validation.constraints.NotNull
@@ -11,7 +12,12 @@ data class CreateAccountRequest(
     val provider: AuthProvider,
 
     @field:NotBlank(message = "Email must not be blank")
+    @field:Email(message = "Must be a valid email address")
     val email: String,
+
+    @field:NotBlank(message = "Username cannot be blank")
+    @field:Size(min = 4, max = 24, message = "User name must be in range 4 to 24 characters")
+    val username: String,
 
     @field:NotBlank(message = "Login must not be blank")
     @field:Size(min = 3, max = 16, message = "Name must be in range (3-16) characters")
