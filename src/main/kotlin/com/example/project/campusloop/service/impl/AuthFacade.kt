@@ -7,6 +7,7 @@ import com.example.project.campusloop.security.JwtCore
 import com.example.project.campusloop.service.AccountService
 import com.example.project.campusloop.service.AccountVerificationService
 import com.example.project.campusloop.service.UserService
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,7 +18,10 @@ class AuthFacade (
     private val userService: UserService,
     private val passwordEncoder: PasswordEncoder,
     private val jwtCore: JwtCore,
-    private val verificationService: AccountVerificationService
+    private val verificationService: AccountVerificationService,
+
+    @Value("\${campusloop.alowed-mail-domain}")
+    private val universityDomain: String
 ) {
 
     @Transactional
@@ -26,9 +30,12 @@ class AuthFacade (
             throw IllegalArgumentException("Passwords do not match")
         }
 
+        if(!command.email.endsWith(universityDomain, ignoreCase = true)) {
+            throw IllegalArgumentException("Registration is restricted to university email addresses ($universityDomain)")
+        }
+
         val newUser = userService.createUser(command.username)
         val hashPassword = passwordEncoder.encode(command.password)
-
 
         val account = accountService.createAccount(
             command.email,
