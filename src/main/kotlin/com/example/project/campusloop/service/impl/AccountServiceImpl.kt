@@ -1,4 +1,4 @@
-package com.example.project.campusloop.service.iml
+package com.example.project.campusloop.service.impl
 
 import com.example.project.campusloop.domain.entity.Account
 import com.example.project.campusloop.domain.entity.User
@@ -19,6 +19,10 @@ class AccountServiceImpl(
     override fun createAccount(email: String, login: String, provider: AuthProvider, password: String, user: User): Account {
         if (repository.existsByEmail(email)) {
             throw IllegalArgumentException("Account with email $email already exists.")
+        }
+
+        if (repository.existsByLogin(login)) {
+            throw IllegalArgumentException("Account with login $login already exists.")
         }
 
         val account = Account(
