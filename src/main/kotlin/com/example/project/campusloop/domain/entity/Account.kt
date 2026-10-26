@@ -35,6 +35,6 @@ class Account(
     val passwordHash: String,
 
     @OneToOne(cascade = [CascadeType.ALL])
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    val user: User? = null,
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    val user: User,
 )

@@ -21,10 +21,7 @@ class User(
     var username: String,
 
     @Column(name = "bio")
-    var bio: String? = null,
-
-    @OneToOne(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val account: Account? = null
+    var bio: String? = null
 ) {
 
 }
