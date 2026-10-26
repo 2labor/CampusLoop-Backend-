@@ -9,6 +9,7 @@ interface AccountService {
     fun createAccount(email: String, login: String, provider: AuthProvider, password: String, user: User): Account
     fun getAccountById(userId: UUID): Account?
     fun findByCredentials(credential: String): Account?
+    fun findByUserId(userId: UUID): Account?
     fun markAsVerified(accountId: UUID)
     fun updatePassword(accountId: UUID, newPasswordHash: String)
 }

@@ -9,10 +9,11 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 import kotlin.random.Random
 
 @Service
-class AccountPasswordServiceImpl(
+class AccountPasswordServiceImpl (
     private val accountService: AccountService,
     private val emailService: EmailService,
     private val tokenService: TokenService,
@@ -62,6 +63,28 @@ class AccountPasswordServiceImpl(
 
         val account = accountService.findByCredentials(email) ?:
         throw IllegalArgumentException("Account with email $email not found")
+
+        val hashPassword = passwordEncoder.encode(newPassword)
+        accountService.updatePassword(account.id!!, hashPassword)
+    }
+
+    @Transactional
+    override fun changePassword(
+        userId: UUID,
+        oldPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ) {
+        if (newPassword != confirmPassword) {
+            throw IllegalArgumentException("New passwords do not match")
+        }
+
+        val account = accountService.findByUserId(userId)
+                ?: throw IllegalArgumentException("Account with email $userId not found")
+
+        if (!passwordEncoder.matches(oldPassword, account.passwordHash)) {
+            throw IllegalArgumentException("Incorrect old password")
+        }
 
         val hashPassword = passwordEncoder.encode(newPassword)
         accountService.updatePassword(account.id!!, hashPassword)

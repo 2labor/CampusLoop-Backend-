@@ -33,5 +33,4 @@ class VerificationController(
 
         return ResponseEntity.ok(MessageResponse("Account successfully verified"))
     }
-
 }
