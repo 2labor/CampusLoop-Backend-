@@ -39,4 +39,8 @@ class AccountServiceImpl(
     override fun getAccountById(userId: UUID): Account? {
         return repository.findByIdOrNull(userId)
     }
+
+    override fun findByCredentials(credential: String): Account? {
+        return repository.findByLogin(credential) ?: repository.findByEmail(credential)
+    }
 }
