@@ -3,7 +3,7 @@ package com.example.project.campusloop.controller
 import com.example.project.campusloop.domain.request.ChangePasswordRequest
 import com.example.project.campusloop.domain.request.ResetPasswordRequest
 import com.example.project.campusloop.domain.request.ForgotPasswordRequest
-import com.example.project.campusloop.repository.MessageResponse
+import com.example.project.campusloop.domain.dto.MessageResponse
 import com.example.project.campusloop.service.AccountPasswordService
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity

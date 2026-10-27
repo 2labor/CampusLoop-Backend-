@@ -45,7 +45,7 @@ class AuthFacade (
             newUser
         )
 
-        verificationService.sendVerificationCode(command.email)
+//        verificationService.sendVerificationCode(command.email)
 
         return account
     }
@@ -58,9 +58,9 @@ class AuthFacade (
             throw IllegalArgumentException("No account with such credentials")
         }
 
-        if (!account.isVerified) {
-            throw IllegalStateException("Account is not verified. Please check your email for the verification code.")
-        }
+//        if (!account.isVerified) {
+//            throw IllegalStateException("Account is not verified. Please check your email for the verification code.")
+//        }
 
         return jwtCore.generateToken(account.user.id!!)
     }

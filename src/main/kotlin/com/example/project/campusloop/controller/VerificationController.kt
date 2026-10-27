@@ -2,7 +2,7 @@ package com.example.project.campusloop.controller
 
 import com.example.project.campusloop.domain.request.SendVerificationRequest
 import com.example.project.campusloop.domain.request.VerifyAccountRequest
-import com.example.project.campusloop.repository.MessageResponse
+import com.example.project.campusloop.domain.dto.MessageResponse
 import com.example.project.campusloop.service.AccountVerificationService
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
