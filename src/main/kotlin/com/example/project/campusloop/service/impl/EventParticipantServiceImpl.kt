@@ -5,6 +5,7 @@ import com.example.project.campusloop.domain.entity.EventParticipant
 import com.example.project.campusloop.domain.enum.EventStatus
 import com.example.project.campusloop.domain.enum.EventType
 import com.example.project.campusloop.domain.enum.ParticipantStatus
+import com.example.project.campusloop.infra.websocket.realtime.service.EventDispatchService
 import com.example.project.campusloop.repository.EventParticipantRepository
 import com.example.project.campusloop.service.AccountService
 import com.example.project.campusloop.service.EventParticipantService
@@ -20,7 +21,8 @@ import java.util.UUID
 class EventParticipantServiceImpl (
     private val repository: EventParticipantRepository,
     private val eventService: EventService,
-    private val userService: UserService
+    private val userService: UserService,
+    private val dispatchService: EventDispatchService
 ) : EventParticipantService {
 
     @Transactional(readOnly = true)
@@ -37,10 +39,10 @@ class EventParticipantServiceImpl (
 
     @Transactional(readOnly = true)
     override fun getMyAttendingEvents(
-        accountId: UUID,
+        userId: UUID,
         pageable: Pageable
     ): Slice<EventParticipant> {
-        return repository.findAllByUserId(accountId, pageable)
+        return repository.findAllByUserId(userId, pageable)
     }
 
     @Transactional
@@ -71,13 +73,16 @@ class EventParticipantServiceImpl (
             ParticipantStatus.PENDING
         }
 
+
         val participant = EventParticipant(
             event = event,
             user = user,
             status = initialStatus
         )
 
-        repository.save(participant)
+        val saved = repository.save(participant)
+
+        dispatchService.notifyParticipantJoined(eventId, saved)
     }
 
     @Transactional
@@ -89,6 +94,8 @@ class EventParticipantServiceImpl (
         }
 
         repository.delete(participant)
+
+        dispatchService.notifyParticipantLeft(eventId, userId)
     }
 
     @Transactional
@@ -116,7 +123,9 @@ class EventParticipantServiceImpl (
         }
 
         participant.status = newStatus
-        repository.save(participant)
+        val saved = repository.save(participant)
+
+        dispatchService.notifyParticipantStatusUpdated(eventId, saved)
     }
 
     private fun findParticipant(eventId: UUID, userId: UUID): EventParticipant {

@@ -8,6 +8,7 @@ import com.example.project.campusloop.domain.entity.EventParticipant
 import com.example.project.campusloop.domain.enum.EventCategory
 import com.example.project.campusloop.domain.enum.EventStatus
 import com.example.project.campusloop.domain.enum.ParticipantStatus
+import com.example.project.campusloop.infra.websocket.realtime.service.EventDispatchService
 import com.example.project.campusloop.repository.EventParticipantRepository
 import com.example.project.campusloop.repository.EventRepository
 import com.example.project.campusloop.service.EventService
@@ -22,7 +23,8 @@ import java.util.UUID
 class EventServiceImpl (
     private val repository: EventRepository,
     private val userService: UserService,
-    private val participantRepository: EventParticipantRepository
+    private val participantRepository: EventParticipantRepository,
+    private val dispatchService: EventDispatchService,
 ) : EventService {
 
     @Transactional
@@ -58,6 +60,8 @@ class EventServiceImpl (
         )
         participantRepository.save(creatorParticipant)
 
+        dispatchService.notifyEventCreated(savedEvent)
+
         return savedEvent
     }
 
@@ -88,7 +92,11 @@ class EventServiceImpl (
             )
         }
 
-        return repository.save(event)
+        val saved = repository.save(event)
+
+        dispatchService.notifyEventUpdated(saved)
+
+        return saved
     }
 
     @Transactional
@@ -104,7 +112,11 @@ class EventServiceImpl (
         }
 
         event.eventStatus = EventStatus.CANCELLED
-        return repository.save(event)
+        val saved = repository.save(event)
+
+        dispatchService.notifyEventUpdated(saved)
+
+        return saved
     }
 
     @Transactional
@@ -120,7 +132,11 @@ class EventServiceImpl (
         }
 
         event.eventStatus = EventStatus.COMPLETED
-        return repository.save(event)
+        val saved = repository.save(event)
+
+        dispatchService.notifyEventUpdated(saved)
+
+        return saved
     }
 
     @Transactional(readOnly = true)
