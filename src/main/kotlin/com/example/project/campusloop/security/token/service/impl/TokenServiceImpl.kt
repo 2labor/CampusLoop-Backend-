@@ -7,7 +7,7 @@ import com.example.project.campusloop.security.token.service.TokenService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
+import java.time.Instant
 
 @Service
 class TokenServiceImpl(
@@ -30,7 +30,7 @@ class TokenServiceImpl(
             identifier = identifier,
             tokenStr = hashToken,
             type = tokenType,
-            expiresIn = LocalDateTime.now().plusMinutes(durationMinutes)
+            expiresIn = Instant.now().plusSeconds(durationMinutes * 60)
         )
 
         return repository.save(token)
@@ -44,7 +44,7 @@ class TokenServiceImpl(
     ): Boolean {
         val tokenEntity = repository.findByIdentifierAndType(identifier, type) ?: return false
 
-        if (tokenEntity.expiresIn.isBefore(LocalDateTime.now())) {
+        if (tokenEntity.expiresIn.isBefore(Instant.now())) {
             repository.delete(tokenEntity)
             return false
         }

@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 @Service
-class UserServiceImpl(
+class UserServiceImpl (
     private val repository: UserRespository
 ) : UserService {
 
@@ -25,5 +25,9 @@ class UserServiceImpl(
     @Transactional(readOnly = true)
     override fun getUserById(userId: UUID): User? {
         return repository.findByIdOrNull(userId)
+    }
+
+    override fun existById(userId: UUID): Boolean {
+        return repository.existsById(userId)
     }
 }

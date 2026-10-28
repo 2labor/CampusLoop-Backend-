@@ -14,7 +14,7 @@ import jakarta.persistence.OneToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -45,13 +45,13 @@ class Account(
     var isVerified: Boolean = false,
 
     @Column(name = "create_at", nullable = false, updatable = false)
-    val createAt: LocalDateTime = LocalDateTime.now(),
+    val createAt: Instant = Instant.now(),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: Instant = Instant.now()
 ) {
     @PreUpdate
     fun onUpdate() {
-        updatedAt = LocalDateTime.now()
+        updatedAt = Instant.now()
     }
 }

@@ -7,4 +7,5 @@ import java.util.UUID
 interface UserService {
     fun createUser(username: String): User
     fun getUserById(userId: UUID): User?
+    fun existById(userId: UUID): Boolean
 }

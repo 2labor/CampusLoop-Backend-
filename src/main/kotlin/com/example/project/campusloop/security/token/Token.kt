@@ -11,7 +11,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -33,16 +33,16 @@ class Token (
     val type: TokenType,
 
     @Column(name = "expires_in", nullable = false)
-    val expiresIn: LocalDateTime,
+    val expiresIn: Instant,
 
     @Column(name = "create_at", nullable = false, updatable = false)
-    val createAt: LocalDateTime = LocalDateTime.now(),
+    val createAt: Instant = Instant.now(),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: Instant = Instant.now()
 ) {
     @PreUpdate
     fun onUpdate() {
-        updatedAt = LocalDateTime.now()
+        updatedAt = Instant.now()
     }
 }

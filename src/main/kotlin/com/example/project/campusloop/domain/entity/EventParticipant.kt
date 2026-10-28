@@ -14,7 +14,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -40,13 +40,13 @@ class EventParticipant (
     var status: ParticipantStatus = ParticipantStatus.APPROVED,
 
     @Column(name = "joined_at", nullable = false)
-    val joinedAt: LocalDateTime = LocalDateTime.now(),
+    val joinedAt: Instant = Instant.now(),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: Instant = Instant.now()
 ) {
     @PreUpdate
     fun preUpdate() {
-        updatedAt = LocalDateTime.now()
+        updatedAt = Instant.now()
     }
 }

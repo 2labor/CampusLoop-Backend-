@@ -7,7 +7,6 @@ import com.example.project.campusloop.service.AccountVerificationService
 import com.example.project.campusloop.service.EmailService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
 import kotlin.random.Random
 
 @Service
