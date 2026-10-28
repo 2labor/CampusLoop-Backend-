@@ -31,7 +31,7 @@ class Account(
     @Column(name = "email", nullable = false)
     val email: String,
 
-    @Column(name = "login", nullable = false)
+    @Column(name = "login", nullable = false) // TODO: make unique login for users
     val login: String,
 
     @Column(name = "password_hash", nullable = false)

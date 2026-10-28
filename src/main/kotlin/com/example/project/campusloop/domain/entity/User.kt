@@ -22,8 +22,6 @@ class User(
     @Column(name = "user_name", nullable = false)
     var username: String,
 
-    @Column(name = "bio")
-    var bio: String? = null,
 
     @Column(name = "create_at", nullable = false, updatable = false)
     val createAt: Instant = Instant.now(),

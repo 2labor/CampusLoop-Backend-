@@ -2,6 +2,7 @@ package com.example.project.campusloop.service.impl
 
 import com.example.project.campusloop.domain.entity.User
 import com.example.project.campusloop.repository.UserRespository
+import com.example.project.campusloop.service.UserProfileService
 import com.example.project.campusloop.service.UserService
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -10,7 +11,8 @@ import java.util.UUID
 
 @Service
 class UserServiceImpl (
-    private val repository: UserRespository
+    private val repository: UserRespository,
+    private val profileService: UserProfileService
 ) : UserService {
 
     @Transactional
@@ -19,7 +21,11 @@ class UserServiceImpl (
             username = username
         )
 
-        return repository.save(user)
+        val saved = repository.save(user)
+
+        profileService.createDefaultProfile(saved)
+
+        return saved
     }
 
     @Transactional(readOnly = true)
