@@ -40,11 +40,7 @@ class AccountVerificationServiceImpl(
     }
 
     override fun verify(email: String, code: String): Boolean {
-        val isVal = tokenService.validateAndConsume(email, code, TokenType.EMAIL_VERIFICATION)
-
-        if (!isVal) {
-            return false
-        }
+        val token = tokenService.validateAndConsume(email, code, TokenType.EMAIL_VERIFICATION) ?: return false
 
         val account = accountService.findByCredentials(email)
             ?: throw IllegalArgumentException("No account found")

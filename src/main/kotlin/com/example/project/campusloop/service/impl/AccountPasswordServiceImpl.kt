@@ -51,13 +51,13 @@ class AccountPasswordServiceImpl (
             throw IllegalArgumentException("Passwords do not match")
         }
 
-        val isValid = tokenService.validateAndConsume(
+        val token = tokenService.validateAndConsume(
             identifier = email,
             tokenValue = code,
             type = TokenType.PASSWORD_RESET
         )
 
-        if (!isValid) {
+        if (token == null) {
             throw IllegalArgumentException("Invalid or expired password reset code")
         }
 

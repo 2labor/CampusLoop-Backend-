@@ -14,31 +14,16 @@ import jakarta.persistence.Table
 import java.time.Instant
 import java.util.UUID
 
-@Entity
-@Table(name = "tokens",
-    indexes = [Index(name = "idx_identifier_type", columnList = "identifier,type")])
-class Token (
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    val id: UUID? = null,
-
-    @Column(name = "identifier", nullable = false)
+data class Token (
+    val id: UUID = UUID.randomUUID(),
     val identifier: String,
-
-    @Column(name = "token", nullable = false)
     val tokenStr: String,
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
     val type: TokenType,
-
-    @Column(name = "expires_in", nullable = false)
     val expiresIn: Instant,
-
-    @Column(name = "create_at", nullable = false, updatable = false)
+    val targetEntityId: UUID? = null,
+    val maxUses: Int? = null,
+    val currentUses: Int = 0,
     val createAt: Instant = Instant.now(),
-
-    @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
     @PreUpdate
