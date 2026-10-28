@@ -1,0 +1,16 @@
+package com.example.project.campusloop.domain.enum
+
+enum class NotificationType {
+    SYSTEM_ANNOUNCEMENT,
+    SYSTEM_UPDATE,
+
+    EVENT_INVITATION,
+    EVENT_PARTICIPANT_APPROVED,
+    EVENT_STATUS_CHANGED,
+
+    FRIEND_REQUEST_RECEIVED,
+    FRIEND_REQUEST_ACCEPTED,
+
+    GROUP_INVITATION,
+    GROUP_MEMBER_JOINED
+}
