@@ -1,7 +1,7 @@
 package com.example.project.campusloop.service.impl
 
 import com.example.project.campusloop.domain.entity.User
-import com.example.project.campusloop.repository.UserRespository
+import com.example.project.campusloop.repository.UserRepository
 import com.example.project.campusloop.service.UserProfileService
 import com.example.project.campusloop.service.UserService
 import org.springframework.data.repository.findByIdOrNull
@@ -11,7 +11,7 @@ import java.util.UUID
 
 @Service
 class UserServiceImpl (
-    private val repository: UserRespository,
+    private val repository: UserRepository,
     private val profileService: UserProfileService
 ) : UserService {
 

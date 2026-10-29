@@ -4,6 +4,6 @@ import com.example.project.campusloop.domain.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface UserRespository : JpaRepository<User, UUID>{
+interface UserRepository : JpaRepository<User, UUID>{
 
 }
