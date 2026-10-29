@@ -165,6 +165,40 @@ class FriendshipServiceImpl (
         return repository.findAllAcceptedConnections(currentUser, pageable)
     }
 
+    @Transactional
+    override fun createFriendship(
+        operatorId: UUID,
+        targetId: UUID
+    ): Friendship {
+        if (operatorId == targetId) {
+            throw IllegalArgumentException("You cannot create a friendship with yourself")
+        }
+
+        val currentUser = userRepository.findById(operatorId)
+            .orElseThrow { IllegalArgumentException("No user with id $operatorId") }
+        val targetUser = userRepository.findById(targetId)
+            .orElseThrow { IllegalArgumentException("No user with id $targetId") }
+
+        val request = repository.findBetweenUsers(currentUser, targetUser)
+            .orElseGet(null)
+
+        if (request != null) {
+            if (request.status == FriendshipStatus.BLOCKED) {
+                throw IllegalStateException("Action prohibited due to block status")
+            }
+            request.status = FriendshipStatus.ACCEPTED
+            return repository.save(request)
+        }
+
+        val newRequest = Friendship(
+            initializer = currentUser,
+            target = targetUser,
+            status = FriendshipStatus.ACCEPTED,
+        )
+
+        return repository.save(newRequest)
+    }
+
     private fun findPendingRequest(currentId: UUID, requesterId: UUID): Friendship {
         val currentUser = userRepository.findById(currentId)
             .orElseThrow { IllegalArgumentException("No user with id $currentId") }

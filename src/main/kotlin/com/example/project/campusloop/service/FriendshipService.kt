@@ -16,4 +16,6 @@ interface FriendshipService {
     fun getOutgoingRequests(currentId: UUID, pageable: Pageable): Slice<Friendship>
     fun getIncomingRequests(currentId: UUID, pageable: Pageable): Slice<Friendship>
     fun getFriends(currentId: UUID, pageable: Pageable): Slice<Friendship>
+
+    fun createFriendship(operatorId: UUID, targetId: UUID): Friendship
 }
