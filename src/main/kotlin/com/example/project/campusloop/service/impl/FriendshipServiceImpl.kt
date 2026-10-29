@@ -2,6 +2,7 @@ package com.example.project.campusloop.service.impl
 
 import com.example.project.campusloop.domain.entity.Friendship
 import com.example.project.campusloop.domain.enum.FriendshipStatus
+import com.example.project.campusloop.infra.websocket.realtime.service.FriendshipDispatchService
 import com.example.project.campusloop.repository.FriendshipRepository
 import com.example.project.campusloop.repository.UserRepository
 import com.example.project.campusloop.service.FriendshipService
@@ -14,7 +15,8 @@ import java.util.UUID
 @Service
 class FriendshipServiceImpl (
     private val repository: FriendshipRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val dispatchService: FriendshipDispatchService
 ): FriendshipService {
 
     @Transactional
@@ -55,7 +57,11 @@ class FriendshipServiceImpl (
             status = FriendshipStatus.PENDING,
         )
 
-        return repository.save(newRequest)
+        val saved = repository.save(newRequest)
+
+        dispatchService.notifyFriendRequestSent(saved)
+
+        return saved
     }
 
     @Transactional
@@ -63,7 +69,9 @@ class FriendshipServiceImpl (
         val request = findPendingRequest(operatorId, requesterId)
 
         request.status = FriendshipStatus.ACCEPTED
-        repository.save(request)
+        val saved = repository.save(request)
+
+        dispatchService.notifyFriendRequestAccepted(saved)
     }
 
     @Transactional
@@ -71,6 +79,8 @@ class FriendshipServiceImpl (
         val request = findPendingRequest(operatorId, requesterId)
 
         repository.delete(request)
+
+        dispatchService.notifyFriendshipRemoved(request, requesterId)
     }
 
     @Transactional
@@ -88,6 +98,8 @@ class FriendshipServiceImpl (
         }
 
         repository.delete(connection)
+
+        dispatchService.notifyFriendshipRemoved(connection, targetId)
     }
 
     @Transactional
@@ -106,7 +118,9 @@ class FriendshipServiceImpl (
             target = targetUser,
             status = FriendshipStatus.BLOCKED
         )
-        repository.save(blockRecord)
+        val saved = repository.save(blockRecord)
+
+        dispatchService.notifyUserBlocked(saved)
     }
 
     @Transactional
