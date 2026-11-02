@@ -21,7 +21,10 @@ class AuthFacade (
     private val verificationService: AccountVerificationService,
 
     @Value("\${campusloop.alowed-mail-domain}")
-    private val universityDomain: String
+    private val universityDomain: String,
+
+    @Value("\${campusloop.auth.require-verification:true}")
+    private val requireVerification: Boolean = true
 ) {
 
     @Transactional
@@ -30,38 +33,60 @@ class AuthFacade (
             throw IllegalArgumentException("Passwords do not match")
         }
 
-        if(!command.email.endsWith(universityDomain, ignoreCase = true)) {
+        val normalizedEmail = command.email.trim().lowercase()
+        val normalizedLogin = command.login.trim().lowercase()
+
+        if (!isAllowedUniversityEmail(normalizedEmail, universityDomain)) {
             throw IllegalArgumentException("Registration is restricted to university email addresses ($universityDomain)")
         }
 
-        val newUser = userService.createUser(command.username)
+        val newUser = userService.createUser(command.username.trim())
         val hashPassword = passwordEncoder.encode(command.password)
 
         val account = accountService.createAccount(
-            command.email,
-            command.login,
+            normalizedEmail,
+            normalizedLogin,
             command.provider,
             hashPassword,
             newUser
         )
 
-//        verificationService.sendVerificationCode(command.email)
+        if (requireVerification) {
+            verificationService.sendVerificationCode(normalizedEmail)
+        }
 
         return account
     }
 
     fun login(command: LoginCommand): String {
-        val account = accountService.findByCredentials(command.credentials)
-            ?: throw IllegalArgumentException("No account with such credentials")
+        val normalizedCredentials = command.credentials.trim()
+        val account = accountService.findByCredentials(normalizedCredentials)
+            ?: throw IllegalArgumentException("Invalid credentials")
 
         if (!passwordEncoder.matches(command.password, account.passwordHash)) {
-            throw IllegalArgumentException("No account with such credentials")
+            throw IllegalArgumentException("Invalid credentials")
         }
 
-//        if (!account.isVerified) {
-//            throw IllegalStateException("Account is not verified. Please check your email for the verification code.")
-//        }
+        if (requireVerification && !account.isVerified) {
+            throw IllegalStateException("Account is not verified. Please check your email for the verification code.")
+        }
 
         return jwtCore.generateToken(account.user.id!!)
+    }
+
+    companion object {
+        fun isAllowedUniversityEmail(email: String, configuredDomain: String): Boolean {
+            val normalizedEmail = email.trim().lowercase()
+            val atIndex = normalizedEmail.lastIndexOf('@')
+            if (atIndex <= 0 || atIndex == normalizedEmail.length - 1) {
+                return false
+            }
+            val emailDomain = normalizedEmail.substring(atIndex + 1)
+            val allowedDomain = configuredDomain.trim().lowercase().removePrefix("@").removePrefix(".")
+            if (allowedDomain.isBlank()) {
+                return false
+            }
+            return emailDomain == allowedDomain || emailDomain.endsWith(".$allowedDomain")
+        }
     }
 }

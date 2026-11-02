@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.security.SecureRandom
 import java.util.UUID
-import kotlin.random.Random
 
 @Service
 class AccountPasswordServiceImpl (
@@ -23,21 +23,24 @@ class AccountPasswordServiceImpl (
     private val passwordResetTtlMinutes: Long,
 ) : AccountPasswordService {
 
+    private val secureRandom = SecureRandom()
+
     @Transactional
     override fun forgotPassword(email: String) {
-        val account = accountService.findByCredentials(email)
-            ?: throw IllegalArgumentException("Account with email $email not found")
+        val normalizedEmail = email.trim().lowercase()
+        val account = accountService.findByCredentials(normalizedEmail)
+            ?: return // Return silently to prevent account enumeration (SEC-05)
 
-        val code = Random.nextInt(100000, 999999).toString()
+        val code = (100000 + secureRandom.nextInt(900000)).toString()
 
         tokenService.createToken(
-            identifier = email,
+            identifier = account.email,
             tokenStr = code,
             TokenType.PASSWORD_RESET,
             durationMinutes = passwordResetTtlMinutes
         )
 
-        emailService.sendPasswordResetEmail(email, code)
+        emailService.sendPasswordResetEmail(account.email, code)
     }
 
     @Transactional
@@ -51,8 +54,9 @@ class AccountPasswordServiceImpl (
             throw IllegalArgumentException("Passwords do not match")
         }
 
+        val normalizedEmail = email.trim().lowercase()
         val token = tokenService.validateAndConsume(
-            identifier = email,
+            identifier = normalizedEmail,
             tokenValue = code,
             type = TokenType.PASSWORD_RESET
         )
@@ -61,8 +65,8 @@ class AccountPasswordServiceImpl (
             throw IllegalArgumentException("Invalid or expired password reset code")
         }
 
-        val account = accountService.findByCredentials(email) ?:
-        throw IllegalArgumentException("Account with email $email not found")
+        val account = accountService.findByCredentials(normalizedEmail)
+            ?: throw IllegalArgumentException("Invalid or expired password reset code")
 
         val hashPassword = passwordEncoder.encode(newPassword)
         accountService.updatePassword(account.id!!, hashPassword)
@@ -80,7 +84,7 @@ class AccountPasswordServiceImpl (
         }
 
         val account = accountService.findByUserId(userId)
-                ?: throw IllegalArgumentException("Account with email $userId not found")
+            ?: throw IllegalArgumentException("Account not found")
 
         if (!passwordEncoder.matches(oldPassword, account.passwordHash)) {
             throw IllegalArgumentException("Incorrect old password")

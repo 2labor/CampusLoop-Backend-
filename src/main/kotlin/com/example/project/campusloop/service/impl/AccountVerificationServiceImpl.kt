@@ -7,7 +7,7 @@ import com.example.project.campusloop.service.AccountVerificationService
 import com.example.project.campusloop.service.EmailService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import kotlin.random.Random
+import java.security.SecureRandom
 
 @Service
 class AccountVerificationServiceImpl(
@@ -15,35 +15,40 @@ class AccountVerificationServiceImpl(
     private val accountService: AccountService,
     private val emailService: EmailService,
 
-    @Value("\${campusloop.account.verification-ttl-minutes}")
+    @Value("\${campusloop.account.verification-ttl-minutes:15}")
     private val ttlForToken: Long
-    ) : AccountVerificationService {
+) : AccountVerificationService {
+
+    private val secureRandom = SecureRandom()
 
     override fun sendVerificationCode(email: String) {
-        val account = accountService.findByCredentials(email) ?:
-            throw IllegalArgumentException("No account found")
+        val normalizedEmail = email.trim().lowercase()
+        val account = accountService.findByCredentials(normalizedEmail)
+            ?: return // Return silently to prevent account enumeration (SEC-05)
 
         if (account.isVerified) {
-            throw IllegalArgumentException("Account already verified")
+            return
         }
 
-        val code = Random.nextInt(100000, 999999).toString()
+        val code = (100000 + secureRandom.nextInt(900000)).toString()
 
         tokenService.createToken(
-            identifier = email,
+            identifier = account.email,
             tokenStr = code,
             tokenType = TokenType.EMAIL_VERIFICATION,
             durationMinutes = ttlForToken,
         )
 
-        emailService.sendVerificationEmail(email,code)
+        emailService.sendVerificationEmail(account.email, code)
     }
 
     override fun verify(email: String, code: String): Boolean {
-        val token = tokenService.validateAndConsume(email, code, TokenType.EMAIL_VERIFICATION) ?: return false
+        val normalizedEmail = email.trim().lowercase()
+        val token = tokenService.validateAndConsume(normalizedEmail, code, TokenType.EMAIL_VERIFICATION)
+            ?: return false
 
-        val account = accountService.findByCredentials(email)
-            ?: throw IllegalArgumentException("No account found")
+        val account = accountService.findByCredentials(normalizedEmail)
+            ?: return false
 
         accountService.markAsVerified(account.id!!)
         return true

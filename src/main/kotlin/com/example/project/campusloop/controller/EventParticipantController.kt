@@ -27,10 +27,11 @@ class EventParticipantController (
 
     @GetMapping("/{eventId}/participants")
     fun getParticipants(
+        @AuthenticationPrincipal userId: UUID,
         @PathVariable eventId: UUID,
         pageable: Pageable
     ): ResponseEntity<Slice<ParticipantResponse>> {
-        val participantsSlice = service.getEventParticipants(eventId, pageable)
+        val participantsSlice = service.getEventParticipants(userId, eventId, pageable)
         val responseSlice = participantsSlice.map { mapper.toResponse(it) }
         return ResponseEntity.ok(responseSlice)
     }

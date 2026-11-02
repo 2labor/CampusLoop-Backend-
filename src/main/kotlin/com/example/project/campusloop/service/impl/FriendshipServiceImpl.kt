@@ -8,6 +8,7 @@ import com.example.project.campusloop.repository.UserRepository
 import com.example.project.campusloop.service.FriendshipService
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -43,7 +44,9 @@ class FriendshipServiceImpl (
                 FriendshipStatus.PENDING -> {
                     if (connection.target.id == operatorId) {
                         connection.status = FriendshipStatus.ACCEPTED
-                        return repository.save(connection)
+                        val saved = repository.save(connection)
+                        dispatchService.notifyFriendRequestAccepted(saved)
+                        return saved
                     } else {
                         throw IllegalStateException("Request already sent")
                     }
@@ -93,17 +96,30 @@ class FriendshipServiceImpl (
         val connection = repository.findBetweenUsers(currentUser, targetUser)
             .orElseThrow { IllegalArgumentException("No connection between users") }
 
-        if (connection.status != FriendshipStatus.ACCEPTED) {
-            throw IllegalStateException("You are not in friends")
+        when (connection.status) {
+            FriendshipStatus.ACCEPTED -> {
+                repository.delete(connection)
+                dispatchService.notifyFriendshipRemoved(connection, targetId)
+            }
+            FriendshipStatus.PENDING -> {
+                if (connection.initializer.id != operatorId) {
+                    throw AccessDeniedException("Only the requester can cancel a pending request")
+                }
+                repository.delete(connection)
+                dispatchService.notifyFriendshipRemoved(connection, targetId)
+            }
+            FriendshipStatus.BLOCKED -> {
+                throw IllegalStateException("Use unblock endpoint to remove a block")
+            }
         }
-
-        repository.delete(connection)
-
-        dispatchService.notifyFriendshipRemoved(connection, targetId)
     }
 
     @Transactional
     override fun blockUser(operatorId: UUID, targetId: UUID) {
+        if (operatorId == targetId) {
+            throw IllegalArgumentException("You cannot block yourself")
+        }
+
         val currentUser = userRepository.findById(operatorId)
             .orElseThrow { IllegalArgumentException("No user with id $operatorId") }
         val targetUser = userRepository.findById(targetId)
@@ -135,7 +151,8 @@ class FriendshipServiceImpl (
 
         check(connection.status == FriendshipStatus.BLOCKED) { "User is not blocked by you" }
 
-        repository.delete(connection)    }
+        repository.delete(connection)
+    }
 
     @Transactional(readOnly = true)
     override fun getIncomingRequestsCount(currentId: UUID): Long {
@@ -180,7 +197,7 @@ class FriendshipServiceImpl (
             .orElseThrow { IllegalArgumentException("No user with id $targetId") }
 
         val request = repository.findBetweenUsers(currentUser, targetUser)
-            .orElseGet(null)
+            .orElse(null)
 
         if (request != null) {
             if (request.status == FriendshipStatus.BLOCKED) {
@@ -202,11 +219,11 @@ class FriendshipServiceImpl (
     private fun findPendingRequest(currentId: UUID, requesterId: UUID): Friendship {
         val currentUser = userRepository.findById(currentId)
             .orElseThrow { IllegalArgumentException("No user with id $currentId") }
-        val targetUser = userRepository.findById(requesterId)
+        val requesterUser = userRepository.findById(requesterId)
             .orElseThrow { IllegalArgumentException("No user with id $requesterId") }
 
-        val request = repository.findBetweenUsers(currentUser, targetUser)
-            .orElseThrow { IllegalArgumentException("No request between users") }
+        val request = repository.findByInitializerAndTarget(requesterUser, currentUser)
+            .orElseThrow { AccessDeniedException("No incoming friend request from user $requesterId") }
 
         if (request.status != FriendshipStatus.PENDING) {
             throw IllegalStateException("Request is not in pending stage")

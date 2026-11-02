@@ -26,11 +26,15 @@ class SecurityConfig (
             .csrf { it.disable() }
             .sessionManagement { session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth -> auth
-                .requestMatchers("api/v**/auth/**").permitAll()
-                .requestMatchers("/api/v**/auth/verification/**").permitAll()
+                .requestMatchers(
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/verification/**",
+                    "/api/v1/auth/password/forgot",
+                    "/api/v1/auth/password/reset"
+                ).permitAll()
                 .anyRequest().authenticated()
             }
-            
             .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
     }

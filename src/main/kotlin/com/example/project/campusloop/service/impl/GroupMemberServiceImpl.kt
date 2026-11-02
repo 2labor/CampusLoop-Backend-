@@ -11,13 +11,14 @@ import com.example.project.campusloop.service.UserService
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 @Service
 class GroupMemberServiceImpl (
-    private val repository : GroupMemberRepository,
+    private val repository: GroupMemberRepository,
     private val userService: UserService,
     private val groupRepository: GroupRepository
 ) : GroupMemberService {
@@ -27,8 +28,8 @@ class GroupMemberServiceImpl (
         operatorId: UUID,
         groupId: UUID
     ): GroupMember {
-        val user = userService.getUserById(operatorId) ?:
-            throw IllegalArgumentException("User with id $operatorId not found")
+        val user = userService.getUserById(operatorId)
+            ?: throw IllegalArgumentException("User with id $operatorId not found")
         val group = groupRepository.findById(groupId)
             .orElseThrow { IllegalArgumentException("Group with id $groupId not found") }
 
@@ -55,8 +56,8 @@ class GroupMemberServiceImpl (
 
     @Transactional
     override fun leaveGroup(operatorId: UUID, groupId: UUID) {
-        val user = userService.getUserById(operatorId) ?:
-            throw IllegalArgumentException("User not found")
+        val user = userService.getUserById(operatorId)
+            ?: throw IllegalArgumentException("User not found")
         val group = groupRepository.findById(groupId)
             .orElseThrow { IllegalArgumentException("Group not found") }
 
@@ -76,12 +77,15 @@ class GroupMemberServiceImpl (
         groupId: UUID,
         targetId: UUID
     ): GroupMember {
-        val user = userService.getUserById(operatorId) ?:
-        throw IllegalArgumentException("User with id $operatorId not found")
         val group = groupRepository.findById(groupId)
             .orElseThrow { IllegalArgumentException("Group with id $groupId not found") }
 
-        val existingMembership = repository.findByGroupAndUser(group, user).orElse(null)
+        validateMemberRole(operatorId, group, GroupMemberRole.MODERATOR)
+
+        val targetUser = userService.getUserById(targetId)
+            ?: throw IllegalArgumentException("User with id $targetId not found")
+
+        val existingMembership = repository.findByGroupAndUser(group, targetUser).orElse(null)
 
         if (existingMembership != null) {
             if (existingMembership.status == GroupMemberStatus.BANNED) {
@@ -97,7 +101,7 @@ class GroupMemberServiceImpl (
 
         val newMembership = GroupMember(
             group = group,
-            user = user,
+            user = targetUser,
             role = GroupMemberRole.MEMBER,
             status = GroupMemberStatus.ACTIVE
         )
@@ -122,11 +126,15 @@ class GroupMemberServiceImpl (
 
         validateMemberRole(operatorId, group, GroupMemberRole.ADMIN)
 
-        val targetUser = userService.getUserById(targetId) ?:
-            throw IllegalArgumentException("Target user not found")
+        val targetUser = userService.getUserById(targetId)
+            ?: throw IllegalArgumentException("Target user not found")
 
         val targetMembership = repository.findByGroupAndUser(group, targetUser)
             .orElseThrow { IllegalArgumentException("Target user is not a member of this group") }
+
+        if (group.creator.id == targetId && newRole != GroupMemberRole.ADMIN) {
+            throw IllegalStateException("Cannot demote the group creator")
+        }
 
         targetMembership.role = newRole
         return repository.save(targetMembership)
@@ -144,8 +152,12 @@ class GroupMemberServiceImpl (
 
         validateMemberRole(operatorId, group, GroupMemberRole.MODERATOR)
 
-        val targetUser = userService.getUserById(targetId) ?:
-            throw IllegalArgumentException("Target user not found")
+        val targetUser = userService.getUserById(targetId)
+            ?: throw IllegalArgumentException("Target user not found")
+
+        if (group.creator.id == targetId && newStatus != GroupMemberStatus.ACTIVE) {
+            throw IllegalStateException("Cannot suspend or ban the group creator")
+        }
 
         val targetMembership = repository.findByGroupAndUser(group, targetUser)
             .orElseThrow { IllegalArgumentException("Target user is not a member of this group") }
@@ -154,18 +166,22 @@ class GroupMemberServiceImpl (
         return repository.save(targetMembership)
     }
 
+    @Transactional(readOnly = true)
     override fun getGroupMembers(
         operatorId: UUID,
         groupId: UUID,
         pageable: Pageable
     ): Slice<GroupMember> {
-        val group = groupRepository.findByIdOrNull(groupId) ?:
-            throw IllegalArgumentException("Group with id: ${groupId} not found")
-        if (group.isPrivate) {
-            val requesterMembership = repository.findByIdOrNull(operatorId) ?:
-                throw  IllegalArgumentException("Group with id: ${operatorId} is private")
+        val group = groupRepository.findByIdOrNull(groupId)
+            ?: throw IllegalArgumentException("Group with id: $groupId not found")
+
+        if (group.isPrivate && group.creator.id != operatorId) {
+            val operatorUser = userService.getUserById(operatorId)
+                ?: throw IllegalArgumentException("User not found")
+            val requesterMembership = repository.findByGroupAndUser(group, operatorUser).orElse(null)
+                ?: throw AccessDeniedException("Group with id: $groupId is private")
             if (requesterMembership.status != GroupMemberStatus.ACTIVE) {
-                throw  IllegalArgumentException("You have to  be member of group: ${groupId}")
+                throw AccessDeniedException("You must be an active member of group: $groupId")
             }
         }
 
@@ -186,14 +202,14 @@ class GroupMemberServiceImpl (
         group: Group,
         requiredRole: GroupMemberRole
     ) {
-        val user = userService.getUserById(userId) ?:
-            throw IllegalArgumentException("User not found")
+        val user = userService.getUserById(userId)
+            ?: throw IllegalArgumentException("User not found")
 
         val membership = repository.findByGroupAndUser(group, user)
-            .orElseThrow { IllegalArgumentException("User is not a member of this group") }
+            .orElseThrow { AccessDeniedException("User is not a member of this group") }
 
         if (membership.status != GroupMemberStatus.ACTIVE) {
-            throw IllegalStateException("User membership is not active")
+            throw AccessDeniedException("User membership is not active")
         }
 
         val isCreator = group.creator.id == userId
@@ -202,10 +218,10 @@ class GroupMemberServiceImpl (
 
         when (requiredRole) {
             GroupMemberRole.ADMIN -> {
-                if (!isAdmin) throw IllegalStateException("Administrator privileges required")
+                if (!isAdmin) throw AccessDeniedException("Administrator privileges required")
             }
             GroupMemberRole.MODERATOR -> {
-                if (!isModerator) throw IllegalStateException("Moderator or Administrator privileges required")
+                if (!isModerator) throw AccessDeniedException("Moderator or Administrator privileges required")
             }
             GroupMemberRole.MEMBER -> {}
         }

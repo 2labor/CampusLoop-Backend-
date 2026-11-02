@@ -6,6 +6,7 @@ import com.example.project.campusloop.domain.request.CreateGroupRequest
 import com.example.project.campusloop.domain.request.UpdateGroupRequest
 import com.example.project.campusloop.service.GroupMemberService
 import com.example.project.campusloop.service.GroupService
+import jakarta.validation.Valid
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.domain.SliceImpl
@@ -33,7 +34,7 @@ class GroupController (
     @PostMapping
     fun createGroup(
         @AuthenticationPrincipal userId: UUID,
-        @RequestBody request: CreateGroupRequest
+        @RequestBody @Valid request: CreateGroupRequest
     ): ResponseEntity<GroupResponse> {
         val group = service.createGroup(userId, request.name, request.description, request.isPrivate)
         val count = memberService.getMemberCount(group.id!!)
@@ -45,7 +46,7 @@ class GroupController (
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID
     ): ResponseEntity<GroupResponse> {
-        val group = service.getGroupById(groupId)
+        val group = service.getGroupById(userId, groupId)
         val count = memberService.getMemberCount(group.id!!)
         return ResponseEntity.ok(group.toResponse(count))
     }
@@ -84,7 +85,7 @@ class GroupController (
     fun updateGroup(
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID,
-        @RequestBody request: UpdateGroupRequest
+        @RequestBody @Valid request: UpdateGroupRequest
     ): ResponseEntity<GroupResponse> {
         val updatedGroup = service.updateGroup(userId, groupId, request.name, request.description, request.isPrivate)
         val count = memberService.getMemberCount(groupId)

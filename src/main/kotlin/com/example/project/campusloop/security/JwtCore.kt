@@ -2,10 +2,10 @@ package com.example.project.campusloop.security
 
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.MalformedJwtException
+import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import io.jsonwebtoken.security.Keys
+import java.nio.charset.StandardCharsets
 import java.util.Date
 import java.util.UUID
 import javax.crypto.SecretKey
@@ -16,15 +16,27 @@ class JwtCore (
     private val secret: String,
 
     @Value("\${campusloop.jwt.expiration:86400000}")
-    private val ttl: Long
+    private val ttl: Long,
+
+    @Value("\${campusloop.jwt.issuer:campusloop-api}")
+    private val issuer: String
 ) {
-    private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
+    init {
+        require(secret.toByteArray(StandardCharsets.UTF_8).size >= 32) {
+            "JWT secret must be at least 32 bytes (256 bits) for HMAC-SHA256"
+        }
+    }
+
+    private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8))
 
     fun generateToken(userId: UUID): String {
+        val now = System.currentTimeMillis()
         return Jwts.builder()
+            .setId(UUID.randomUUID().toString())
+            .setIssuer(issuer)
             .setSubject(userId.toString())
-            .setIssuedAt(Date())
-            .setExpiration(Date(System.currentTimeMillis() + ttl))
+            .setIssuedAt(Date(now))
+            .setExpiration(Date(now + ttl))
             .signWith(key)
             .compact()
     }
@@ -33,6 +45,7 @@ class JwtCore (
         try {
             Jwts.parserBuilder()
                 .setSigningKey(key)
+                .requireIssuer(issuer)
                 .build()
                 .parseClaimsJws(token)
             return true
@@ -46,6 +59,7 @@ class JwtCore (
     fun getUserIdFromToken(token: String): UUID {
         val claims = Jwts.parserBuilder()
             .setSigningKey(key)
+            .requireIssuer(issuer)
             .build()
             .parseClaimsJws(token)
             .body
