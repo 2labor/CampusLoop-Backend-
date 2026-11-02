@@ -1,13 +1,14 @@
 package com.example.project.campusloop.infra.websocket
+
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Component
 
 @Component
 class RedisWebSocketReceiver (
     private val messagingTemplate: SimpMessagingTemplate
-){
+) {
     fun handleBroadcast(message: Any, channel: String) {
-        val stompDestination = channel.removePrefix("ws:broadcast")
+        val stompDestination = channel.removePrefix("ws:broadcast:")
         messagingTemplate.convertAndSend(stompDestination, message)
     }
 

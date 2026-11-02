@@ -14,11 +14,15 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.Instant
 import java.util.UUID
 
 @Entity
-@Table(name = "group_members")
+@Table(
+    name = "group_members",
+    uniqueConstraints = [UniqueConstraint(columnNames = ["group_id", "user_id"])]
+)
 class GroupMember (
 
     @Id

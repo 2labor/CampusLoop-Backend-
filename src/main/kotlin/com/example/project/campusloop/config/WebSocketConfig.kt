@@ -1,10 +1,10 @@
 package com.example.project.campusloop.config
 
 import com.example.project.campusloop.infra.websocket.JwtChannelInterceptor
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
 import org.springframework.messaging.simp.config.ChannelRegistration
 import org.springframework.messaging.simp.config.MessageBrokerRegistry
-import org.springframework.messaging.support.ChannelInterceptor
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer
@@ -12,7 +12,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 class WebSocketConfig (
-    private val jwtChannelInterceptor: JwtChannelInterceptor
+    private val jwtChannelInterceptor: JwtChannelInterceptor,
+    @Value("\${campusloop.websocket.allowed-origins:http://localhost:*,https://localhost:*}")
+    private val allowedOriginPatterns: Array<String>
 ) : WebSocketMessageBrokerConfigurer {
 
     override fun configureMessageBroker(registry: MessageBrokerRegistry) {
@@ -22,7 +24,7 @@ class WebSocketConfig (
 
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
         registry.addEndpoint("/ws")
-            .setAllowedOriginPatterns("*")
+            .setAllowedOriginPatterns(*allowedOriginPatterns)
     }
 
     override fun configureClientInboundChannel(registration: ChannelRegistration) {

@@ -26,21 +26,21 @@ class GroupMembersController (
     private val service: GroupMemberService
 ) {
 
-    @PostMapping("{groupId}/join")
+    @PostMapping("/{groupId}/join")
     fun joinGroup(
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID,
     ): ResponseEntity<GroupMemberResponse> {
-        val membership = service.joinGroup(groupId, userId)
+        val membership = service.joinGroup(userId, groupId)
         return ResponseEntity.status(HttpStatus.CREATED).body(membership.toResponse())
     }
 
-    @DeleteMapping("{groupId}/leave")
+    @DeleteMapping("/{groupId}/leave")
     fun leaveGroup(
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID,
     ): ResponseEntity<Void> {
-        service.leaveGroup(groupId, userId)
+        service.leaveGroup(userId, groupId)
         return ResponseEntity.noContent().build()
     }
 
@@ -49,7 +49,7 @@ class GroupMembersController (
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID,
         pageable: Pageable
-    ):ResponseEntity<Slice<GroupMemberResponse>> {
+    ): ResponseEntity<Slice<GroupMemberResponse>> {
         val slice = service.getGroupMembers(userId, groupId, pageable)
         val content = slice.content.map { it.toResponse() }
         val responseSlice = SliceImpl(content, pageable, slice.hasNext())

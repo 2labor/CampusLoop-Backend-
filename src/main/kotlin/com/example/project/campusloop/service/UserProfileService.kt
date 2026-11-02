@@ -3,12 +3,11 @@ package com.example.project.campusloop.service
 import com.example.project.campusloop.domain.command.UpdateProfileCommand
 import com.example.project.campusloop.domain.entity.User
 import com.example.project.campusloop.domain.entity.UserProfile
-import org.springframework.data.domain.Pageable
-import org.springframework.data.domain.Slice
 import java.util.UUID
 
 interface UserProfileService {
     fun getProfileByUserId(userId: UUID): UserProfile
+    fun getProfileForViewer(callerId: UUID, targetUserId: UUID): UserProfile
     fun createDefaultProfile(user: User): UserProfile
     fun updateProfile(userId: UUID, command: UpdateProfileCommand): UserProfile
 }

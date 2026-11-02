@@ -17,7 +17,7 @@ import java.util.UUID
 
 @Service
 class GroupServiceImpl (
-    private val repository : GroupRepository,
+    private val repository: GroupRepository,
     private val userService: UserService,
     private val memberService: GroupMemberService
 ) : GroupService {
@@ -29,12 +29,12 @@ class GroupServiceImpl (
         description: String?,
         isPrivate: Boolean
     ): Group {
-        val creator = userService.getUserById(operatorId) ?:
-            throw  IllegalArgumentException("User with id $operatorId not found")
+        val creator = userService.getUserById(operatorId)
+            ?: throw IllegalArgumentException("User with id $operatorId not found")
 
         val group = Group(
-            name = name,
-            description = description,
+            name = name.trim(),
+            description = description?.trim(),
             isPrivate = isPrivate,
             creator = creator
         )
@@ -53,14 +53,20 @@ class GroupServiceImpl (
     }
 
     @Transactional(readOnly = true)
-    override fun getGroupById(id: UUID): Group {
-        return repository.findByIdOrNull(id) ?:
-            throw  IllegalArgumentException("Group with id $id not found")
+    override fun getGroupById(operatorId: UUID, id: UUID): Group {
+        val group = repository.findByIdOrNull(id)
+            ?: throw IllegalArgumentException("Group with id $id not found")
+
+        if (group.isPrivate && group.creator.id != operatorId) {
+            memberService.validateMemberRole(operatorId, group, GroupMemberRole.MEMBER)
+        }
+
+        return group
     }
 
     @Transactional(readOnly = true)
     override fun getGroups(pageable: Pageable): Slice<Group> {
-        return repository.findAll(pageable)
+        return repository.findAllByIsPrivateFalse(pageable)
     }
 
     @Transactional(readOnly = true)
@@ -68,7 +74,7 @@ class GroupServiceImpl (
         query: String,
         pageable: Pageable
     ): Slice<Group> {
-        return repository.searchByName(query, pageable)
+        return repository.searchByName(query.trim(), pageable)
     }
 
     @Transactional
@@ -79,12 +85,13 @@ class GroupServiceImpl (
         description: String?,
         isPrivate: Boolean?
     ): Group {
-        val group = getGroupById(groupId)
+        val group = repository.findByIdOrNull(groupId)
+            ?: throw IllegalArgumentException("Group with id $groupId not found")
 
         memberService.validateMemberRole(operatorId, group, GroupMemberRole.ADMIN)
 
-        name?.let { group.name = it }
-        description?.let { group.description = it }
+        name?.let { group.name = it.trim() }
+        description?.let { group.description = it.trim() }
         isPrivate?.let { group.isPrivate = it }
 
         return repository.save(group)
@@ -92,7 +99,8 @@ class GroupServiceImpl (
 
     @Transactional
     override fun deleteGroup(operatorId: UUID, groupId: UUID) {
-        val group = getGroupById(groupId)
+        val group = repository.findByIdOrNull(groupId)
+            ?: throw IllegalArgumentException("Group with id $groupId not found")
 
         if (group.creator.id != operatorId) {
             throw IllegalArgumentException("Only the creator can perform this action")

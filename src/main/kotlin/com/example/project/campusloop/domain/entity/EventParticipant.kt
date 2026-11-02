@@ -20,7 +20,7 @@ import java.util.UUID
 @Entity
 @Table(
     name = "event_participants",
-    uniqueConstraints = [UniqueConstraint(columnNames = ["event_id", "account_id"])]
+    uniqueConstraints = [UniqueConstraint(columnNames = ["event_id", "user_id"])]
 )
 class EventParticipant (
     @Id
