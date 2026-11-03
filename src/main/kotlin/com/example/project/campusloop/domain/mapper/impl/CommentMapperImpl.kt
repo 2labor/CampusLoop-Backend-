@@ -16,6 +16,7 @@ class CommentMapperImpl : CommentMapper {
         return CommentResponse(
             id = entity.id!!,
             content = entity.content,
+            parentId = entity.parent?.id,
             author = AuthorDto(entity.author.id!!, entity.author.username),
             postId = entity.post.id!!,
             createdAt = entity.createdAt,
@@ -24,7 +25,7 @@ class CommentMapperImpl : CommentMapper {
     }
 
     override fun toCommand(request: CreateCommentRequest): CreateCommentCommand {
-        return CreateCommentCommand(request.content)
+        return CreateCommentCommand(request.content, request.parentId)
     }
 
     override fun toCommand(request: EditCommentRequest): EditCommentCommand {

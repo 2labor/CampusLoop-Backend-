@@ -13,4 +13,5 @@ interface CommentService {
     fun deleteComment(operatorId: UUID, postId: UUID, commentId: UUID)
     fun getComment(operatorId: UUID, commentId: UUID): Comment
     fun getCommentsByPost(operatorId: UUID, postId: UUID, pageable: Pageable): Slice<Comment>
+    fun getReplies(operatorId: UUID, commentId: UUID, pageable: Pageable): Slice<Comment>
 }

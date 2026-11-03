@@ -37,9 +37,18 @@ class CommentServiceImpl(
 
         val post = postService.getPost(authorId, postId)
 
+        val parentComment = command.parentId?.let { pId ->
+            repository.findByIdOrNull(pId) ?: throw IllegalArgumentException("Parent comment $pId not found")
+        }
+
+        if (parentComment != null && parentComment.post.id != post.id) {
+            throw IllegalArgumentException("Parent comment does not belong to this post")
+        }
+
         val comment = Comment(
             content = command.content,
             post = post,
+            parent = parentComment,
             author = author
         )
 
@@ -105,7 +114,17 @@ class CommentServiceImpl(
     ): Slice<Comment> {
         val post = postService.getPost(operatorId, postId)
 
-        return repository.findAllByPostOrderByCreatedAtAsc(post, pageable)
+        return repository.findAllByPostAndParentIsNullOrderByCreatedAtAsc(post, pageable)
+    }
+
+    @Transactional(readOnly = true)
+    override fun getReplies(
+        operatorId: UUID,
+        commentId: UUID,
+        pageable: Pageable
+    ): Slice<Comment> {
+        val parentComment = getComment(operatorId, commentId)
+        return repository.findAllByParentOrderByCreatedAtAsc(parentComment, pageable)
     }
 
 }

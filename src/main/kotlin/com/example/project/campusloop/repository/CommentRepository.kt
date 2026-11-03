@@ -8,5 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface CommentRepository : JpaRepository<Comment, UUID> {
-    fun findAllByPostOrderByCreatedAtAsc(post: Post, pageable: Pageable): Slice<Comment>
+    fun findAllByPostAndParentIsNullOrderByCreatedAtAsc(post: Post, pageable: Pageable): Slice<Comment>
+
+    fun findAllByParentOrderByCreatedAtAsc(parent: Comment, pageable: Pageable): Slice<Comment>
 }
