@@ -210,4 +210,8 @@ class GroupMemberServiceImpl (
             GroupMemberRole.MEMBER -> {}
         }
     }
+
+    override fun isMemberActive(groupId: UUID, userId: UUID, status: GroupMemberStatus): Boolean {
+        return repository.existsByGroupIdAndUserIdAndStatus(groupId, userId, status)
+    }
 }

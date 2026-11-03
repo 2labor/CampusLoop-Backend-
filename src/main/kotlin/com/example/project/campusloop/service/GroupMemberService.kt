@@ -18,4 +18,5 @@ interface GroupMemberService {
     fun getGroupMembers(operatorId: UUID, groupId: UUID, pageable: Pageable): Slice<GroupMember>
     fun getMemberCount(groupId: UUID): Long
     fun validateMemberRole(userId: UUID, group: Group, requiredRole: GroupMemberRole)
+    fun isMemberActive(groupId: UUID, userId: UUID, status: GroupMemberStatus): Boolean
 }
