@@ -91,7 +91,6 @@ class PostServiceImpl (
             throw IllegalArgumentException("Post with id $postId does not exist")
 
         val group = post.group
-
         checkForMembership(group, operatorId)
 
         return post
