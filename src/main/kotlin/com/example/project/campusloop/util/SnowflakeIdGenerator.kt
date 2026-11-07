@@ -50,6 +50,7 @@ class SnowflakeIdGenerator (
         return Instant.now().toEpochMilli()
     }
 
+
     companion object {
         private const val START_EPOCH = 1704067200000L // 01.01.2024
 

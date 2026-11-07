@@ -1,9 +1,9 @@
 package com.example.project.campusloop.controller
 
+import com.example.project.campusloop.domain.dto.Message
 import com.example.project.campusloop.domain.request.ChangePasswordRequest
 import com.example.project.campusloop.domain.request.ResetPasswordRequest
 import com.example.project.campusloop.domain.request.ForgotPasswordRequest
-import com.example.project.campusloop.domain.dto.MessageResponse
 import com.example.project.campusloop.service.AccountPasswordService
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
@@ -20,27 +20,27 @@ class PasswordController(
     private val passwordService: AccountPasswordService,
 ) {
     @PostMapping("/forgot")
-    fun forgotPassword(@RequestBody @Valid request: ForgotPasswordRequest): ResponseEntity<MessageResponse> {
+    fun forgotPassword(@RequestBody @Valid request: ForgotPasswordRequest): ResponseEntity<Message> {
         passwordService.forgotPassword(request.email)
-        return ResponseEntity.ok(MessageResponse("Password reset code sent successfully"))
+        return ResponseEntity.ok(Message("Password reset code sent successfully"))
     }
 
     @PostMapping("/reset")
-    fun resetPassword(@RequestBody @Valid request: ResetPasswordRequest): ResponseEntity<MessageResponse> {
+    fun resetPassword(@RequestBody @Valid request: ResetPasswordRequest): ResponseEntity<Message> {
         passwordService.resetPassword(
             request.email,
             request.code,
             request.newPassword,
             request.confirmPassword
         )
-        return ResponseEntity.ok(MessageResponse("Password successfully reset"))
+        return ResponseEntity.ok(Message("Password successfully reset"))
     }
 
     @PostMapping("/change-password")
     fun changePassword(
         authentication: Authentication,
         @RequestBody @Valid request: ChangePasswordRequest
-    ): ResponseEntity<MessageResponse> {
+    ): ResponseEntity<Message> {
         val userId = UUID.fromString(authentication.name)
         passwordService.changePassword(
             userId,
@@ -49,7 +49,7 @@ class PasswordController(
             request.confNewPassword
         )
 
-        return ResponseEntity.ok(MessageResponse("Password changed successfully"))
+        return ResponseEntity.ok(Message("Password changed successfully"))
     }
 
 }

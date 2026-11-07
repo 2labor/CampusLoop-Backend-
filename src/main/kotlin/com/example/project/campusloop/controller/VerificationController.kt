@@ -1,5 +1,6 @@
 package com.example.project.campusloop.controller
 
+import com.example.project.campusloop.domain.dto.Message
 import com.example.project.campusloop.domain.request.SendVerificationRequest
 import com.example.project.campusloop.domain.request.VerifyAccountRequest
 import com.example.project.campusloop.domain.dto.MessageResponse
@@ -18,19 +19,19 @@ class VerificationController(
 ) {
 
     @PostMapping("/send")
-    fun sendVerificationEmail(@RequestBody @Valid request: SendVerificationRequest): ResponseEntity<MessageResponse> {
+    fun sendVerificationEmail(@RequestBody @Valid request: SendVerificationRequest): ResponseEntity<Message> {
         verificationService.sendVerificationCode(request.email)
-        return ResponseEntity.ok(MessageResponse("Verification code sent successfully"))
+        return ResponseEntity.ok(Message("Verification code sent successfully"))
     }
 
     @PostMapping("/verify")
-    fun verify(@RequestBody @Valid request: VerifyAccountRequest): ResponseEntity<MessageResponse> {
+    fun verify(@RequestBody @Valid request: VerifyAccountRequest): ResponseEntity<Message> {
         val isVerify = verificationService.verify(request.email, request.code)
 
         if (!isVerify) {
-            return ResponseEntity.ok(MessageResponse("Invalid or expired verification code"))
+            return ResponseEntity.ok(Message("Invalid or expired verification code"))
         }
 
-        return ResponseEntity.ok(MessageResponse("Account successfully verified"))
+        return ResponseEntity.ok(Message("Account successfully verified"))
     }
 }
