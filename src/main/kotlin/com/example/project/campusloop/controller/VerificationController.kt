@@ -6,6 +6,7 @@ import com.example.project.campusloop.domain.request.VerifyAccountRequest
 import com.example.project.campusloop.domain.dto.MessageResponse
 import com.example.project.campusloop.service.AccountVerificationService
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -29,7 +30,7 @@ class VerificationController(
         val isVerify = verificationService.verify(request.email, request.code)
 
         if (!isVerify) {
-            return ResponseEntity.ok(Message("Invalid or expired verification code"))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Message("Invalid or expired verification code"))
         }
 
         return ResponseEntity.ok(Message("Account successfully verified"))

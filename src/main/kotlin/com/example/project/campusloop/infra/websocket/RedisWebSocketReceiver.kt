@@ -7,7 +7,7 @@ class RedisWebSocketReceiver (
     private val messagingTemplate: SimpMessagingTemplate
 ){
     fun handleBroadcast(message: Any, channel: String) {
-        val stompDestination = channel.removePrefix("ws:broadcast")
+        val stompDestination = channel.removePrefix("ws:broadcast:")
         messagingTemplate.convertAndSend(stompDestination, message)
     }
 

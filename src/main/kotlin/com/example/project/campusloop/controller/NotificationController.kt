@@ -49,7 +49,7 @@ class NotificationController (
         return ResponseEntity.noContent().build()
     }
 
-    @PatchMapping("/raed-all")
+    @PatchMapping("/read-all")
     fun raedAll(
         @AuthenticationPrincipal userId: UUID,
     ): ResponseEntity<Void> {

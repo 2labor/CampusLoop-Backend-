@@ -14,6 +14,6 @@ class RedisWebSocketBroadcaster (
     }
 
     fun sendToUser(userId: UUID, destination: String, payload: Any) {
-        redisTemplate.convertAndSend("ws:sendToUser:$userId:$destination", payload)
+        redisTemplate.convertAndSend("ws:user:$userId:$destination", payload)
     }
 }
