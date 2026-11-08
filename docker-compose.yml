@@ -22,5 +22,21 @@ services:
       resources:
         limits:
           memory: 256M
+
+  minio:
+    image: minio/minio:latest
+    container_name: campusloop-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    ports:
+      - "9000:9000"   # S3 API Endpoint
+      - "9001:9001"   # Web UI Console
+    volumes:
+      - minio_data:/data
+
+
 volumes:
   postgres_data:
+  minio_data:
