@@ -6,6 +6,7 @@ import com.example.project.campusloop.domain.entity.Message
 import com.example.project.campusloop.domain.enum.ChannelType
 import com.example.project.campusloop.domain.enum.GroupMemberRole
 import com.example.project.campusloop.domain.enum.HistoryDirection
+import com.example.project.campusloop.infra.websocket.realtime.service.MessageDispatchService
 import com.example.project.campusloop.repository.MessageRepository
 import com.example.project.campusloop.service.ChannelMemberService
 import com.example.project.campusloop.service.ChannelService
@@ -28,6 +29,7 @@ class MessageServiceImpl (
     private val idGenerator: SnowflakeIdGenerator,
     private val userService: UserService,
     private val groupMemberService: GroupMemberService,
+    private val dispatchService: MessageDispatchService,
 ) : MessageService {
 
     @Transactional
@@ -64,7 +66,14 @@ class MessageServiceImpl (
             parentMessage = parentMessage,
         )
 
-        return repository.save(message)
+        val saved = repository.save(message)
+
+        dispatchService.notifyMessageCreated(
+            channelId = channelId,
+            message = saved
+        )
+
+        return saved
     }
 
     @Transactional
@@ -86,7 +95,14 @@ class MessageServiceImpl (
 
         message.content = command.content
 
-        return repository.save(message)
+        val saved = repository.save(message)
+
+        dispatchService.notifyMessageUpdated(
+            channelId = saved.channel.id!!,
+            message = saved
+        )
+
+        return saved
     }
 
     @Transactional
@@ -113,6 +129,11 @@ class MessageServiceImpl (
         }
 
         repository.delete(message)
+
+        dispatchService.notifyMessageDeleted(
+            channelId = message.channel.id!!,
+            messageId = messageId
+        )
     }
 
     @Transactional(readOnly = true)

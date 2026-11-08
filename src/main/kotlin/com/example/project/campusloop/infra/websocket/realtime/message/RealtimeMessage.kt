@@ -5,6 +5,6 @@ import java.util.UUID
 
 data class RealtimeMessage<T>(
     val action: RealtimeAction,
-    val entityId: UUID,
+    val entityId: Any,
     val payload: T?
 )

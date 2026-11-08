@@ -11,12 +11,16 @@ class RedisWebSocketReceiver (
         messagingTemplate.convertAndSend(stompDestination, message)
     }
 
-    fun handleUserMessage(message: Any, channel: String) {
-        val parts = channel.split(":")
-        if (parts.size >= 4) {
-            val userId = parts[2]
-            val stompDestination = parts.drop(3).joinToString(":")
-            messagingTemplate.convertAndSendToUser(userId, stompDestination, message)
+    fun handleUserMessage(payload: Any, pattern: String) {
+        val prefix = "ws:user:"
+        if (pattern.startsWith(prefix)) {
+            val remaining = pattern.substring(prefix.length)
+            val firstColonIndex = remaining.indexOf(':')
+            if (firstColonIndex != -1) {
+                val userId = remaining.substring(0, firstColonIndex)
+                val stompDestination = remaining.substring(firstColonIndex + 1)
+                messagingTemplate.convertAndSendToUser(userId, stompDestination, payload)
+            }
         }
     }
 

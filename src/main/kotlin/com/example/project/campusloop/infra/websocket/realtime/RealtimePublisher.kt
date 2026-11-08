@@ -13,7 +13,7 @@ class RealtimePublisher (
     fun <T> publish(
         destination: String,
         action: RealtimeAction,
-        entityId: UUID,
+        entityId: Any,
         payload: T?
     ){
         val message = RealtimeMessage(
