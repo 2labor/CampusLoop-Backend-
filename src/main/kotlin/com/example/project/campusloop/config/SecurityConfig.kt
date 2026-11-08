@@ -41,13 +41,13 @@ class SecurityConfig(
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
-            .cors { }                      // подхватит corsConfigurationSource
+            .cors { }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
             .authorizeHttpRequests { auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/ws/**").permitAll()                    // JWT проверяется в JwtChannelInterceptor
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/api/v1/auth/password/change-password").authenticated()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .anyRequest().authenticated()

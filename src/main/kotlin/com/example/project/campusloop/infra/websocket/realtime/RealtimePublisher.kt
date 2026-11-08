@@ -24,4 +24,20 @@ class RealtimePublisher (
 
         broadcaster.broadcast(destination, message)
     }
+
+    fun <T> sendToUser(
+        userId: UUID,
+        destination: String,
+        action: RealtimeAction,
+        entityId: Any,
+        payload: T?
+    ) {
+        val message = RealtimeMessage(
+            action = action,
+            entityId = entityId,
+            payload = payload
+        )
+
+        broadcaster.sendToUser(userId, destination, message)
+    }
 }
