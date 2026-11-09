@@ -161,31 +161,129 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+
+interface ZonePopularityConfig {
+  id: string;
+  name: string;
+  popularityScore: number; // 0-100
+  statusTag: string; // e.g. "🔥 Very Popular", "⚡ Moderate", "🤫 Quiet Zone"
+  isTrending: boolean;
+  category: string;
+}
+
+interface PromoDeal {
+  id: string;
+  title: string;
+  description: string;
+  promoCode: string;
+  discountPercent: number;
+  targetZone: string;
+  category: string; // "COFFEE", "MEAL", "SNACK"
+  isActive: boolean;
+  validUntil: string;
+}
+
+interface CampusAiConfig {
+  aiModelName: string;
+  aiModelActive: boolean;
+  recommendationMode: string;
+  suggestionFrequency: string;
+  broadcastBanner: string;
+  broadcastActive: boolean;
+  zones: ZonePopularityConfig[];
+  promos: PromoDeal[];
+  updatedAt: string;
+}
+
+let globalAiConfig: CampusAiConfig = {
+  aiModelName: "campus-deep-recommend-v2 (Edge-Neural)",
+  aiModelActive: true,
+  recommendationMode: "AUTONOMOUS_SMART",
+  suggestionFrequency: "HIGH",
+  broadcastBanner: "🎉 Special Campus Promo: Use code TUDCOFFEE20 for 20% off flat whites at Aungier St. Roastery!",
+  broadcastActive: true,
+  updatedAt: new Date().toISOString(),
+  zones: [
+    { id: "zone_cafe", name: "Aungier St. Roastery", popularityScore: 98, statusTag: "🔥 Very Popular", isTrending: true, category: "COFFEE" },
+    { id: "zone_central_quad", name: "Central Quad", popularityScore: 94, statusTag: "🔥 High Traffic", isTrending: true, category: "CAMPUS_HUB" },
+    { id: "zone_library", name: "Main Library", popularityScore: 88, statusTag: "📖 Deep Study", isTrending: false, category: "LIBRARY" },
+    { id: "zone_east_quad", name: "East Quad", popularityScore: 82, statusTag: "🎨 Creative Spot", isTrending: false, category: "ARTS" },
+    { id: "zone_sports", name: "Sports Centre", popularityScore: 74, statusTag: "🏀 Active Gym", isTrending: false, category: "SPORTS" },
+    { id: "zone_green", name: "Lower Courtyard Lawn", popularityScore: 65, statusTag: "🌳 Relax Lawn", isTrending: false, category: "OUTDOOR" }
+  ],
+  promos: [
+    {
+      id: "promo_coffee",
+      title: "Morning Espresso & Flat White Perk",
+      description: "Grab specialty coffee or oat flat white before your lecture or meetup!",
+      promoCode: "TUDCOFFEE20",
+      discountPercent: 20,
+      targetZone: "zone_cafe",
+      category: "COFFEE",
+      isActive: true,
+      validUntil: "Today 18:00"
+    },
+    {
+      id: "promo_lunch",
+      title: "Central Quad Student Lunch Deal",
+      description: "Warm artisan lunch sandwich + fresh soup combo at campus cafeteria.",
+      promoCode: "CAMPUSMEAL15",
+      discountPercent: 15,
+      targetZone: "zone_central_quad",
+      category: "MEAL",
+      isActive: true,
+      validUntil: "Today 16:30"
+    },
+    {
+      id: "promo_snack",
+      title: "East Quad Matcha & Cookie Combo",
+      description: "Energy booster snack before design review or afternoon session.",
+      promoCode: "EASTQUAD10",
+      discountPercent: 10,
+      targetZone: "zone_east_quad",
+      category: "SNACK",
+      isActive: true,
+      validUntil: "End of Week"
+    },
+    {
+      id: "promo_hack",
+      title: "Late Night Coding Fuel",
+      description: "Free specialty drip coffee or energy drink with any hot meal.",
+      promoCode: "HACKATHONFREE",
+      discountPercent: 100,
+      targetZone: "zone_central_quad",
+      category: "COFFEE",
+      isActive: true,
+      validUntil: "24/7"
+    }
+  ]
+};
+
 let collegeAdminsInitialized = false;
 async function ensureCollegeAdmins(env: Env, now: string) {
   if (collegeAdminsInitialized) return;
   try {
-    // 1. Google Admin (c24741821@mytudublin.ie)
+    // 1. Google Admin (hazekk94@gmail.com - Primary Lead Admin)
     await env.DB.prepare(
       `INSERT OR REPLACE INTO users (
         id, email, username, login, password_hash, provider, is_verified,
         first_name, last_name, bio, course, academic_year, campus_zone, activity_status, interests, created_at, updated_at
       ) VALUES (
         '00000000-0000-0000-0000-000000000011',
-        'c24741821@mytudublin.ie',
-        'c24741821_google',
-        'c24741821_google',
+        'hazekk94@gmail.com',
+        'hazekk94',
+        'hazekk94',
         'demo1234',
         'GOOGLE',
         1,
-        'Admin (Google)',
-        'TU Dublin',
-        'TU Dublin Administrator via Google Workspace (c24741821@mytudublin.ie)',
-        'TU Dublin Computer Science Admin',
+        'Ruslan',
+        'Lead Admin',
+        'CampusLoop Lead Admin (hazekk94@gmail.com). Full AI recommendation & system adjustment privileges.',
+        'Lead Systems Architect',
         4,
         'East Quad',
         'AVAILABLE',
-        '["ADMIN","CAMPUS_LEAD","GOOGLE_WORKSPACE"]',
+        '["ADMIN","CAMPUS_LEAD","GOOGLE_WORKSPACE","AI_CORE"]',
         ?, ?
       )`
     ).bind(now, now).run();
@@ -194,28 +292,27 @@ async function ensureCollegeAdmins(env: Env, now: string) {
   }
 
   try {
-    // 2. Outlook / Microsoft Admin (c24741821@mytudublin.ie)
-    // If table has single email unique constraint, use alias c24741821_outlook@mytudublin.ie
+    // 2. Outlook / Microsoft Admin (c24393471@mytudublin.ie - Backend Lead)
     await env.DB.prepare(
       `INSERT OR REPLACE INTO users (
         id, email, username, login, password_hash, provider, is_verified,
         first_name, last_name, bio, course, academic_year, campus_zone, activity_status, interests, created_at, updated_at
       ) VALUES (
         '00000000-0000-0000-0000-000000000012',
-        'c24741821+outlook@mytudublin.ie',
-        'c24741821_outlook',
-        'c24741821_outlook',
+        'c24393471@mytudublin.ie',
+        'c24393471_outlook',
+        'c24393471_outlook',
         'demo1234',
         'OUTLOOK',
         1,
-        'Admin (Outlook)',
-        'TU Dublin',
-        'TU Dublin Administrator via Microsoft 365 / Outlook (c24741821@mytudublin.ie)',
+        'Backend Lead',
+        'C24393471',
+        'TU Dublin Backend Lead Developer (c24393471@mytudublin.ie). Managing Edge microservices and real-time STOMP.',
         'TU Dublin Computer Science Admin',
         4,
         'Central Quad',
         'AVAILABLE',
-        '["ADMIN","CAMPUS_LEAD","OUTLOOK_365"]',
+        '["ADMIN","CAMPUS_LEAD","OUTLOOK_365","BACKEND_CORE"]',
         ?, ?
       )`
     ).bind(now, now).run();
@@ -231,8 +328,8 @@ async function ensureCollegeAdmins(env: Env, now: string) {
       ('gm-adm-o-1', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000012', 'ADMIN', '${now}'),
       ('gm-adm-o-2', '33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000012', 'ADMIN', '${now}');
       INSERT OR REPLACE INTO channel_members (id, channel_id, user_id, username, created_at, updated_at) VALUES
-      (2011, 1001, '00000000-0000-0000-0000-000000000011', 'c24741821_google', '${now}', '${now}'),
-      (2012, 1001, '00000000-0000-0000-0000-000000000012', 'c24741821_outlook', '${now}', '${now}');
+      (2011, 1001, '00000000-0000-0000-0000-000000000011', 'hazekk94', '${now}', '${now}'),
+      (2012, 1001, '00000000-0000-0000-0000-000000000012', 'c24393471_outlook', '${now}', '${now}');
     `);
   } catch {}
 
@@ -269,8 +366,8 @@ export default {
         websocket: "/ws (STOMP 1.2)",
         webApp: "https://campusloop-api.rohovskyi.dev/app",
         collegeAdmins: [
-          { email: "c24741821@mytudublin.ie", provider: "GOOGLE", username: "c24741821_google" },
-          { email: "c24741821@mytudublin.ie", provider: "OUTLOOK", username: "c24741821_outlook" }
+          { email: "hazekk94@gmail.com", provider: "GOOGLE", username: "hazekk94", role: "Lead Admin (Ruslan)" },
+          { email: "c24393471@mytudublin.ie", provider: "OUTLOOK", username: "c24393471_outlook", role: "Backend Lead (C24393471)" }
         ],
         status: "UP",
         timestamp: now,
@@ -280,7 +377,7 @@ export default {
     if (path === "/api/v1/admin/init-college-admins") {
       collegeAdminsInitialized = false;
       await ensureCollegeAdmins(env, now);
-      return jsonResponse({ message: "College admin accounts initialized for c24741821@mytudublin.ie (Google & Outlook)", status: "OK" });
+      return jsonResponse({ message: "Admin accounts initialized: hazekk94@gmail.com (Google Lead) & c24393471@mytudublin.ie (Outlook Backend Lead)", status: "OK" });
     }
 
     // Responsive Web App (Mobile, Tablet & Desktop PC) at /app
@@ -497,20 +594,25 @@ export default {
       await ensureCollegeAdmins(env, now);
       const body = (await req.json()) as Record<string, string>;
       const provider = (body.provider || "GOOGLE").toUpperCase();
-      const email = (body.email || "c24741821@mytudublin.ie").trim().toLowerCase();
+      let email = (body.email || "").trim().toLowerCase();
 
+      if (!email) {
+        email = provider === "GOOGLE" ? "hazekk94@gmail.com" : "c24393471@mytudublin.ie";
+      }
+
+      // Check user by email or provider
       let user = await env.DB.prepare(
-        `SELECT * FROM users WHERE (lower(email) = ? OR lower(email) = ?) AND provider = ? LIMIT 1`
-      ).bind(email, email.replace("@", "+outlook@"), provider).first<Record<string, unknown>>();
+        `SELECT * FROM users WHERE (lower(email) = ? OR lower(login) = ? OR lower(username) = ?) AND provider = ? LIMIT 1`
+      ).bind(email, email, email, provider).first<Record<string, unknown>>();
 
       if (!user) {
-        user = await env.DB.prepare(
-          `SELECT * FROM users WHERE (lower(email) = ? OR lower(username) LIKE ?) LIMIT 1`
-        ).bind(email, `%${provider.toLowerCase()}%`).first<Record<string, unknown>>();
+        // Fallback for primary admins
+        const targetId = provider === "GOOGLE" ? "00000000-0000-0000-0000-000000000011" : "00000000-0000-0000-0000-000000000012";
+        user = await env.DB.prepare(`SELECT * FROM users WHERE id = ? LIMIT 1`).bind(targetId).first<Record<string, unknown>>();
       }
 
       if (!user) {
-        return jsonResponse({ message: `College account for ${provider} (${email}) not found` }, 404);
+        return jsonResponse({ message: `Admin account for ${provider} (${email}) not found` }, 404);
       }
 
       const token = await signJwt(
@@ -525,6 +627,87 @@ export default {
         provider: user.provider,
         role: "ADMIN",
       });
+    }
+
+    // ========================================================
+    // 19. AI Model Engine & Admin Adjustments (/api/v1/ai)
+    // ========================================================
+    if (path === "/api/v1/ai/config" && method === "GET") {
+      try {
+        const cached = await env.AUTH_KV.get("campus_ai_config");
+        if (cached) {
+          globalAiConfig = JSON.parse(cached);
+        }
+      } catch {}
+      return jsonResponse(globalAiConfig);
+    }
+
+    if (path === "/api/v1/admin/ai/config" && method === "POST") {
+      const body = (await req.json()) as Partial<CampusAiConfig>;
+      globalAiConfig = {
+        ...globalAiConfig,
+        ...body,
+        updatedAt: now,
+      };
+      try {
+        await env.AUTH_KV.put("campus_ai_config", JSON.stringify(globalAiConfig));
+      } catch {}
+      return jsonResponse({
+        message: "AI recommendation engine and campus popularity rankings updated successfully",
+        config: globalAiConfig,
+      });
+    }
+
+    if (path === "/api/v1/ai/suggestions" && method === "GET") {
+      try {
+        const cached = await env.AUTH_KV.get("campus_ai_config");
+        if (cached) {
+          globalAiConfig = JSON.parse(cached);
+        }
+      } catch {}
+      const popularSorted = [...globalAiConfig.zones].sort((a, b) => b.popularityScore - a.popularityScore);
+      const activePromos = globalAiConfig.promos.filter(p => p.isActive);
+
+      return jsonResponse({
+        model: globalAiConfig.aiModelName,
+        runningMode: globalAiConfig.recommendationMode,
+        broadcastBanner: globalAiConfig.broadcastActive ? globalAiConfig.broadcastBanner : null,
+        topPopularPlaces: popularSorted.slice(0, 3),
+        suggestedPerksAndMeals: activePromos,
+        contextualTips: [
+          {
+            headline: "💡 Peak Hours Tip",
+            text: `${popularSorted[0].name} has a current popularity index of ${popularSorted[0].popularityScore}%. Best quiet study zone is ${globalAiConfig.zones.find(z => z.id === "zone_library")?.name || "Main Library"}.`,
+            promoCode: null,
+          },
+          {
+            headline: "🍔 Pre-Meetup Coffee & Meal Deal",
+            text: `Heading to a campus event? Use code ${activePromos[0]?.promoCode || "TUDCOFFEE20"} for ${activePromos[0]?.discountPercent || 20}% off before joining your peers!`,
+            promoCode: activePromos[0]?.promoCode || "TUDCOFFEE20",
+          },
+        ],
+      });
+    }
+
+    if (path === "/api/v1/promos" && method === "GET") {
+      try {
+        const cached = await env.AUTH_KV.get("campus_ai_config");
+        if (cached) {
+          globalAiConfig = JSON.parse(cached);
+        }
+      } catch {}
+      return jsonResponse(globalAiConfig.promos.filter(p => p.isActive));
+    }
+
+    if (path === "/api/v1/admin/promos" && method === "POST") {
+      const newPromo = (await req.json()) as PromoDeal;
+      if (!newPromo.id) newPromo.id = `promo_${Date.now()}`;
+      newPromo.isActive = newPromo.isActive !== false;
+      globalAiConfig.promos = [newPromo, ...globalAiConfig.promos.filter(p => p.id !== newPromo.id)];
+      try {
+        await env.AUTH_KV.put("campus_ai_config", JSON.stringify(globalAiConfig));
+      } catch {}
+      return jsonResponse({ message: "Promo code created / updated", promo: newPromo });
     }
 
     // 2. VerificationController (/api/v1/auth/verification)
