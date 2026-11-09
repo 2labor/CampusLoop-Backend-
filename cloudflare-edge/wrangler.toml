@@ -1,0 +1,21 @@
+name = "campusloop-backend"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+routes = [
+  { pattern = "campusloop-api.rohovskyi.dev", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "campusloop-db"
+database_id = "ab6fd3eb-fd74-458f-a3a1-f2f639272fb9"
+
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "304fc37c083c4e58ae1137bcefaac2ac"
+
+[vars]
+JWT_SECRET = "CampusLoopSuperSecretJwtKeyForHmacSha256Minimum32BytesLong!"
+PUBLIC_URL = "https://campusloop-api.rohovskyi.dev"

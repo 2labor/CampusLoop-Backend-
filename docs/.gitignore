@@ -1,0 +1,5 @@
+# Limit docs/ folder strictly to Markdown (*.md) files
+*
+!*/
+!*.md
+!.gitignore

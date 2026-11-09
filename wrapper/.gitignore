@@ -1,0 +1,4 @@
+# Limit wrapper/ folder to maven-wrapper.properties
+*.jar
+*.tmp
+*.bak
