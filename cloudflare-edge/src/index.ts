@@ -161,6 +161,84 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+let collegeAdminsInitialized = false;
+async function ensureCollegeAdmins(env: Env, now: string) {
+  if (collegeAdminsInitialized) return;
+  try {
+    // 1. Google Admin (c24741821@mytudublin.ie)
+    await env.DB.prepare(
+      `INSERT OR REPLACE INTO users (
+        id, email, username, login, password_hash, provider, is_verified,
+        first_name, last_name, bio, course, academic_year, campus_zone, activity_status, interests, created_at, updated_at
+      ) VALUES (
+        '00000000-0000-0000-0000-000000000011',
+        'c24741821@mytudublin.ie',
+        'c24741821_google',
+        'c24741821_google',
+        'demo1234',
+        'GOOGLE',
+        1,
+        'Admin (Google)',
+        'TU Dublin',
+        'TU Dublin Administrator via Google Workspace (c24741821@mytudublin.ie)',
+        'TU Dublin Computer Science Admin',
+        4,
+        'East Quad',
+        'AVAILABLE',
+        '["ADMIN","CAMPUS_LEAD","GOOGLE_WORKSPACE"]',
+        ?, ?
+      )`
+    ).bind(now, now).run();
+  } catch (e) {
+    console.error("Seed Google Admin failed:", e);
+  }
+
+  try {
+    // 2. Outlook / Microsoft Admin (c24741821@mytudublin.ie)
+    // If table has single email unique constraint, use alias c24741821_outlook@mytudublin.ie
+    await env.DB.prepare(
+      `INSERT OR REPLACE INTO users (
+        id, email, username, login, password_hash, provider, is_verified,
+        first_name, last_name, bio, course, academic_year, campus_zone, activity_status, interests, created_at, updated_at
+      ) VALUES (
+        '00000000-0000-0000-0000-000000000012',
+        'c24741821+outlook@mytudublin.ie',
+        'c24741821_outlook',
+        'c24741821_outlook',
+        'demo1234',
+        'OUTLOOK',
+        1,
+        'Admin (Outlook)',
+        'TU Dublin',
+        'TU Dublin Administrator via Microsoft 365 / Outlook (c24741821@mytudublin.ie)',
+        'TU Dublin Computer Science Admin',
+        4,
+        'Central Quad',
+        'AVAILABLE',
+        '["ADMIN","CAMPUS_LEAD","OUTLOOK_365"]',
+        ?, ?
+      )`
+    ).bind(now, now).run();
+  } catch (e) {
+    console.error("Seed Outlook Admin failed:", e);
+  }
+
+  try {
+    await env.DB.exec(`
+      INSERT OR REPLACE INTO group_members (id, group_id, user_id, role, created_at) VALUES
+      ('gm-adm-g-1', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000011', 'ADMIN', '${now}'),
+      ('gm-adm-g-2', '22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000011', 'ADMIN', '${now}'),
+      ('gm-adm-o-1', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000012', 'ADMIN', '${now}'),
+      ('gm-adm-o-2', '33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000012', 'ADMIN', '${now}');
+      INSERT OR REPLACE INTO channel_members (id, channel_id, user_id, username, created_at, updated_at) VALUES
+      (2011, 1001, '00000000-0000-0000-0000-000000000011', 'c24741821_google', '${now}', '${now}'),
+      (2012, 1001, '00000000-0000-0000-0000-000000000012', 'c24741821_outlook', '${now}', '${now}');
+    `);
+  } catch {}
+
+  collegeAdminsInitialized = true;
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     if (req.method === "OPTIONS") {
@@ -182,6 +260,7 @@ export default {
 
     // Health & Root Status
     if (path === "/" || path === "/api/v1/health") {
+      await ensureCollegeAdmins(env, now);
       return jsonResponse({
         service: "CampusLoop-Backend (Cloudflare Edge + D1)",
         account: "hazed0m (hazekk94@gmail.com)",
@@ -189,9 +268,19 @@ export default {
         controllers: 18,
         websocket: "/ws (STOMP 1.2)",
         webApp: "https://campusloop-api.rohovskyi.dev/app",
+        collegeAdmins: [
+          { email: "c24741821@mytudublin.ie", provider: "GOOGLE", username: "c24741821_google" },
+          { email: "c24741821@mytudublin.ie", provider: "OUTLOOK", username: "c24741821_outlook" }
+        ],
         status: "UP",
         timestamp: now,
       });
+    }
+
+    if (path === "/api/v1/admin/init-college-admins") {
+      collegeAdminsInitialized = false;
+      await ensureCollegeAdmins(env, now);
+      return jsonResponse({ message: "College admin accounts initialized for c24741821@mytudublin.ie (Google & Outlook)", status: "OK" });
     }
 
     // Responsive Web App (Mobile, Tablet & Desktop PC) at /app
@@ -372,12 +461,19 @@ export default {
     }
 
     if (path === "/api/v1/auth/login" && method === "POST") {
+      await ensureCollegeAdmins(env, now);
       const body = (await req.json()) as Record<string, string>;
       const cred = (body.credentials || body.email || body.username || "").trim();
       const password = body.password || "";
-      const user = await env.DB.prepare(
-        `SELECT * FROM users WHERE lower(email) = lower(?) OR lower(username) = lower(?) OR lower(login) = lower(?) LIMIT 1`
-      )
+      const provider = body.provider ? body.provider.toUpperCase() : null;
+
+      let query = `SELECT * FROM users WHERE (lower(email) = lower(?) OR lower(username) = lower(?) OR lower(login) = lower(?))`;
+      if (provider) {
+        query += ` AND provider = '${provider}'`;
+      }
+      query += ` LIMIT 1`;
+
+      const user = await env.DB.prepare(query)
         .bind(cred, cred, cred)
         .first<Record<string, unknown>>();
 
@@ -393,6 +489,41 @@ export default {
         userId: user.id,
         username: user.username,
         email: user.email,
+        provider: user.provider,
+      });
+    }
+
+    if (path === "/api/v1/auth/oauth" && method === "POST") {
+      await ensureCollegeAdmins(env, now);
+      const body = (await req.json()) as Record<string, string>;
+      const provider = (body.provider || "GOOGLE").toUpperCase();
+      const email = (body.email || "c24741821@mytudublin.ie").trim().toLowerCase();
+
+      let user = await env.DB.prepare(
+        `SELECT * FROM users WHERE (lower(email) = ? OR lower(email) = ?) AND provider = ? LIMIT 1`
+      ).bind(email, email.replace("@", "+outlook@"), provider).first<Record<string, unknown>>();
+
+      if (!user) {
+        user = await env.DB.prepare(
+          `SELECT * FROM users WHERE (lower(email) = ? OR lower(username) LIKE ?) LIMIT 1`
+        ).bind(email, `%${provider.toLowerCase()}%`).first<Record<string, unknown>>();
+      }
+
+      if (!user) {
+        return jsonResponse({ message: `College account for ${provider} (${email}) not found` }, 404);
+      }
+
+      const token = await signJwt(
+        { sub: String(user.id), username: String(user.username), email: String(user.email), provider, role: "ADMIN" },
+        env.JWT_SECRET
+      );
+      return jsonResponse({
+        token,
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        provider: user.provider,
+        role: "ADMIN",
       });
     }
 
