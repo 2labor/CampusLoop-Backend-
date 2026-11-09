@@ -3,6 +3,7 @@ package com.example.project.campusloop.service.impl
 import com.example.project.campusloop.domain.command.UpdateProfileCommand
 import com.example.project.campusloop.domain.entity.User
 import com.example.project.campusloop.domain.entity.UserProfile
+import com.example.project.campusloop.infra.storage.service.StorageService
 import com.example.project.campusloop.repository.UserProfileRepository
 import com.example.project.campusloop.service.UserProfileService
 import org.springframework.data.repository.findByIdOrNull
@@ -12,7 +13,8 @@ import java.util.UUID
 
 @Service
 class UserProfileServiceImpl (
-    private val repository: UserProfileRepository
+    private val repository: UserProfileRepository,
+    private val storageService: StorageService
 ) : UserProfileService {
 
     @Transactional(readOnly = true)
@@ -39,8 +41,16 @@ class UserProfileServiceImpl (
     ): UserProfile {
         val profile = getProfileByUserId(userId)
 
+        command.avatarKey?.let { newKey ->
+            if (newKey != profile.avatarUrl) {
+                profile.avatarUrl?.let { oldKey ->
+                    runCatching { storageService.deleteFile(oldKey) }
+                }
+                profile.avatarUrl= newKey
+            }
+        }
+
         command.fullName.let { profile.fullName = it }
-        command.avatarUrl.let { profile.avatarUrl = it }
         command.bio.let { profile.bio = it }
         command.course?.let { profile.course = it }
         command.academicYear?.let { profile.academicYear = it }
