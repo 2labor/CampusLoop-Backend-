@@ -33,4 +33,13 @@ interface FriendshipRepository : JpaRepository<Friendship, UUID> {
     fun findAllAcceptedConnections(@Param("user") user: User, pageable: Pageable): Slice<Friendship>
 
     fun countByTargetAndStatus(target: User, status: FriendshipStatus): Long
+
+    @Query("""
+    SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END 
+    FROM Friendship f 
+    WHERE ((f.initializer.id = :id1 AND f.target.id = :id2) 
+       OR (f.initializer.id = :id2 AND f.target.id = :id1)) 
+      AND f.status = 'ACCEPTED'
+""")
+    fun existsAcceptedFriendship(id1: UUID, id2: UUID): Boolean
 }

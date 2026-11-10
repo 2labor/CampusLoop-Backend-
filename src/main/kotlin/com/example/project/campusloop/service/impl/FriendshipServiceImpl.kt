@@ -8,6 +8,7 @@ import com.example.project.campusloop.repository.UserRepository
 import com.example.project.campusloop.service.FriendshipService
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -197,6 +198,10 @@ class FriendshipServiceImpl (
         )
 
         return repository.save(newRequest)
+    }
+
+    override fun isFriends(operatorId: UUID, targetId: UUID): Boolean {
+        return operatorId == targetId || repository.existsAcceptedFriendship(operatorId, targetId)
     }
 
     private fun findPendingRequest(currentId: UUID, requesterId: UUID): Friendship {
