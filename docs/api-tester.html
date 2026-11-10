@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusLoop — Full Interactive API Tester & Debugger</title>
+  <style>
+    :root {
+      --bg: #0C0D10;
+      --card: #15181F;
+      --card-alt: #1C2029;
+      --border: #282D3B;
+      --text: #F0F2F6;
+      --text-muted: #8F97A8;
+      --lime: #A9F36B;
+      --blue: #88A2FF;
+      --cyan: #4EE4D2;
+      --orange: #FFA347;
+      --red: #FF6666;
+      --purple: #D08FFF;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--lime);
+      letter-spacing: -0.3px;
+    }
+    .pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .pill-green { background: rgba(169, 243, 107, 0.15); color: var(--lime); border: 1px solid rgba(169, 243, 107, 0.3); }
+    .pill-blue { background: rgba(136, 162, 255, 0.15); color: var(--blue); border: 1px solid rgba(136, 162, 255, 0.3); }
+    .pill-orange { background: rgba(255, 163, 71, 0.15); color: var(--orange); border: 1px solid rgba(255, 163, 71, 0.3); }
+
+    /* Environment and Auth Bar */
+    .env-auth-bar {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    select, input, textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+    button {
+      background: var(--card-alt);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    button:hover {
+      background: #272C39;
+      border-color: #3E4557;
+    }
+    button.btn-primary {
+      background: var(--lime);
+      color: #0C0D10;
+      border-color: var(--lime);
+      font-weight: 700;
+    }
+    button.btn-primary:hover {
+      background: #95DE5B;
+    }
+    button.btn-sm {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+
+    /* Layout */
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: calc(100vh - 120px);
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: #111319;
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+      max-height: calc(100vh - 120px);
+      position: sticky;
+      top: 110px;
+    }
+    .sidebar-heading {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .nav-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      margin-bottom: 3px;
+      cursor: pointer;
+    }
+    .nav-item:hover, .nav-item.active {
+      background: var(--card-alt);
+      color: var(--lime);
+    }
+    .nav-badge {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+
+    /* Content Area */
+    .main-content {
+      padding: 24px;
+      max-width: 1300px;
+    }
+    .search-filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .search-filter-bar input {
+      flex: 1;
+      min-width: 260px;
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+
+    /* Endpoint Card */
+    .endpoint-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .endpoint-card:hover {
+      border-color: #3A4153;
+    }
+    .card-header {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.015);
+      border-bottom: 1px solid transparent;
+    }
+    .endpoint-card.open .card-header {
+      border-bottom-color: var(--border);
+    }
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .method-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 4px;
+      min-width: 58px;
+      text-align: center;
+    }
+    .method-GET { background: rgba(136, 162, 255, 0.18); color: var(--blue); border: 1px solid rgba(136, 162, 255, 0.4); }
+    .method-POST { background: rgba(169, 243, 107, 0.18); color: var(--lime); border: 1px solid rgba(169, 243, 107, 0.4); }
+    .method-PUT { background: rgba(255, 163, 71, 0.18); color: var(--orange); border: 1px solid rgba(255, 163, 71, 0.4); }
+    .method-PATCH { background: rgba(208, 143, 255, 0.18); color: var(--purple); border: 1px solid rgba(208, 143, 255, 0.4); }
+    .method-DELETE { background: rgba(255, 102, 102, 0.18); color: var(--red); border: 1px solid rgba(255, 102, 102, 0.4); }
+
+    .endpoint-path {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .endpoint-title {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .card-body {
+      padding: 16px;
+      display: none;
+      background: #12141A;
+    }
+    .endpoint-card.open .card-body {
+      display: block;
+    }
+
+    /* Params & Body Grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-field label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .code-area {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      background: #090A0D;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      color: #79FFA8;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Response Drawer */
+    .response-box {
+      margin-top: 14px;
+      background: #090A0D;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .response-header {
+      padding: 8px 12px;
+      background: #141720;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+    .status-badge {
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+    .status-2xx { background: rgba(169, 243, 107, 0.2); color: var(--lime); }
+    .status-4xx { background: rgba(255, 163, 71, 0.2); color: var(--orange); }
+    .status-5xx { background: rgba(255, 102, 102, 0.2); color: var(--red); }
+    .response-body {
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      max-height: 320px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #E2E6EE;
+    }
+
+    /* Live WebSocket STOMP Console */
+    #stompConsoleDrawer {
+      background: #0E1015;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .stomp-header {
+      padding: 12px 16px;
+      background: #161922;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stomp-log {
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      height: 200px;
+      overflow-y: auto;
+      background: #08090C;
+      color: #9EC0FF;
+    }
+    .stomp-log-line {
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      padding-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <span class="brand-title">CampusLoop</span>
+      <span class="pill pill-green">API Explorer & Debugger</span>
+      <span class="pill pill-blue">19 Controllers</span>
+      <span class="pill pill-orange">Edge D1 + STOMP 1.2</span>
+    </div>
+    <div class="control-group">
+      <span id="wsStatusBadge" class="pill pill-orange">WS: Disconnected</span>
+      <button onclick="toggleStompDrawer()">⚡ STOMP Console</button>
+      <a href="https://campusloop-api.rohovskyi.dev/app" target="_blank" style="text-decoration:none"><button class="btn-primary">📱 Open Web App</button></a>
+    </div>
+  </div>
+
+  <div class="env-auth-bar">
+    <div class="control-group">
+      <label for="envSelect">Target Backend:</label>
+      <select id="envSelect" onchange="onEnvChange()">
+        <option value="https://campusloop-api.rohovskyi.dev" selected>Cloudflare Edge (https://campusloop-api.rohovskyi.dev)</option>
+        <option value="https://campusloop-backend.hazekk94.workers.dev">Workers.dev (https://campusloop-backend.hazekk94.workers.dev)</option>
+        <option value="http://localhost:8080">Local Spring Boot (http://localhost:8080)</option>
+        <option value="custom">Custom URL...</option>
+      </select>
+      <input id="customEnvInput" style="display:none;width:220px;" placeholder="https://..." oninput="onCustomEnvInput()" />
+    </div>
+
+    <div class="control-group">
+      <label>Quick Login:</label>
+      <button class="btn-sm" onclick="quickLogin('alex_tud', 'demo1234', 'Alex Mercer (Student)')">👨‍💻 Alex</button>
+      <button class="btn-sm" onclick="quickLogin('niamh_k', 'demo1234', 'Niamh Kelly (Designer)')">🎨 Niamh</button>
+      <button class="btn-sm" onclick="quickLogin('liam_ob', 'demo1234', 'Liam O\'Brien (Robotics)')">🤖 Liam</button>
+      <button class="btn-sm" style="border-color:var(--lime);color:var(--lime)" onclick="quickLogin('hazekk94', 'demo1234', 'Lead Admin (Ruslan)')">🛡️ Lead Admin</button>
+      <button class="btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="quickLogin('c24393471_outlook', 'demo1234', 'Backend Lead (C24393471)')">🎓 Backend Lead</button>
+      <button class="btn-sm" onclick="clearToken()">Clear JWT</button>
+    </div>
+  </div>
+
+  <div style="margin-top:8px; display:flex; align-items:center; gap:8px; font-size:12px;">
+    <span style="color:var(--text-muted)">Active Token:</span>
+    <span id="activeUserBadge" style="color:var(--lime);font-weight:600">alex_tud (Default Demo Student)</span>
+    <input id="jwtInput" style="flex:1;max-width:380px;padding:3px 8px;font-size:11px;font-family:var(--font-mono)" placeholder="Paste raw Bearer JWT here..." onchange="onJwtManualChange()" />
+  </div>
+</header>
+
+<div class="container">
+  <!-- Sidebar Category Nav -->
+  <aside class="sidebar">
+    <div class="sidebar-heading">API Categories</div>
+    <div class="nav-item active" onclick="filterCategory('ALL')"><span>All Endpoints</span><span class="nav-badge" id="countAll">0</span></div>
+    <div class="nav-item" onclick="filterCategory('HEALTH')"><span>🏥 Health & System</span><span class="nav-badge">2</span></div>
+    <div class="nav-item" onclick="filterCategory('AUTH')"><span>🔐 Auth & Password</span><span class="nav-badge">8</span></div>
+    <div class="nav-item" onclick="filterCategory('PROFILE')"><span>👤 Profiles & Search</span><span class="nav-badge">3</span></div>
+    <div class="nav-item" onclick="filterCategory('GROUPS')"><span>👥 Groups & Members</span><span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="filterCategory('POSTS')"><span>💬 Posts & Comments</span><span class="nav-badge">4</span></div>
+    <div class="nav-item" onclick="filterCategory('EVENTS')"><span>📅 Events & Meetups</span><span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="filterCategory('FRIENDS')"><span>🤝 Friendships</span><span class="nav-badge">4</span></div>
+    <div class="nav-item" onclick="filterCategory('NOTIFICATIONS')"><span>🔔 Notifications</span><span class="nav-badge">4</span></div>
+    <div class="nav-item" onclick="filterCategory('CHANNELS')"><span>⚡ Channels & Chat</span><span class="nav-badge">7</span></div>
+    <div class="nav-item" onclick="filterCategory('GEO')"><span>🗺️ Geo & Ghost Mode</span><span class="nav-badge">3</span></div>
+    <div class="nav-item" onclick="filterCategory('STORIES')"><span>📸 Stories (Location)</span><span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="filterCategory('STORAGE')"><span>📦 Storage (S3/MinIO)</span><span class="nav-badge">4</span></div>
+    <div class="nav-item" onclick="filterCategory('AI')"><span>🤖 AI & Promo Codes</span><span class="nav-badge">5</span></div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Collapsible STOMP Live Console -->
+    <div id="stompConsoleDrawer" style="display:none;">
+      <div class="stomp-header">
+        <div style="font-weight:700;display:flex;align-items:center;gap:8px;">
+          <span>⚡ Real-Time STOMP 1.2 WebSocket Live Stream</span>
+          <span class="pill pill-green">/ws</span>
+        </div>
+        <div class="control-group">
+          <button class="btn-sm" onclick="reconnectStomp()">Reconnect</button>
+          <button class="btn-sm" onclick="clearStompLog()">Clear Log</button>
+          <button class="btn-sm" onclick="toggleStompDrawer()">Close</button>
+        </div>
+      </div>
+      <div class="stomp-log" id="stompLogArea">
+        <div class="stomp-log-line" style="color:var(--text-muted)">STOMP client initialized. Listening on /topic/events, /topic/channels/{id}/messages, /topic/stories, /user/queue/geo/friends...</div>
+      </div>
+    </div>
+
+    <!-- Search / Filter -->
+    <div class="search-filter-bar">
+      <input id="searchInput" placeholder="🔍 Search endpoint (e.g. stories, ghost, register, channels, comments)..." oninput="onSearchInput()" />
+      <button onclick="expandAll(true)">Expand All</button>
+      <button onclick="expandAll(false)">Collapse All</button>
+    </div>
+
+    <!-- Endpoints Container -->
+    <div id="endpointsList"></div>
+  </main>
+</div>
+
+<script>
+  let activeBaseUrl = "https://campusloop-api.rohovskyi.dev";
+  let activeJwt = localStorage.getItem("campusloop_jwt") || "";
+  let activeCategory = "ALL";
+  let activeSearch = "";
+  let stompWs = null;
+
+  // Endpoint Definitions (Covering all 19 controllers)
+  const ENDPOINTS = [
+    // 1. Health
+    {
+      category: "HEALTH",
+      method: "GET",
+      path: "/api/v1/health",
+      title: "Backend Service Health & Admin Roster",
+      params: [],
+      body: null,
+      auth: false
+    },
+    {
+      category: "HEALTH",
+      method: "GET",
+      path: "/api/v1/admin/init-college-admins",
+      title: "Ensure Admin Accounts Initialized (Ruslan & C24393471)",
+      params: [],
+      body: null,
+      auth: false
+    },
+
+    // 2. Auth & Password
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/register",
+      title: "Register New Student Account",
+      params: [],
+      body: {
+        email: "test.student@tudublin.ie",
+        username: "test_student",
+        login: "test_student",
+        password: "demo1234password",
+        firstName: "Test",
+        lastName: "Student",
+        bio: "Computer Science student testing CampusLoop API",
+        course: "Computer Science",
+        academicYear: 2,
+        campusZone: "East Quad"
+      },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/login",
+      title: "Student Password Login (returns JWT)",
+      params: [],
+      body: {
+        login: "alex_tud",
+        password: "demo1234"
+      },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/oauth",
+      title: "College Admin OAuth Login (Google & Outlook)",
+      params: [],
+      body: {
+        provider: "GOOGLE",
+        idToken: "mock-google-id-token-hazekk94",
+        email: "hazekk94@gmail.com",
+        displayName: "Ruslan Lead Admin"
+      },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/verification/send",
+      title: "Send Verification Code to Student Email",
+      params: [],
+      body: { email: "alex@tudublin.ie" },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/verification/verify",
+      title: "Verify Student Email with 6-Digit Code",
+      params: [],
+      body: { email: "alex@tudublin.ie", code: "123456" },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/password/forgot",
+      title: "Request Password Reset Link / Code",
+      params: [],
+      body: { email: "alex@tudublin.ie" },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/password/reset",
+      title: "Reset Forgotten Password with Token",
+      params: [],
+      body: { token: "sample-reset-token", newPassword: "newSecurePassword123!" },
+      auth: false
+    },
+    {
+      category: "AUTH",
+      method: "POST",
+      path: "/api/v1/auth/password/change-password",
+      title: "Change Account Password (Authenticated)",
+      params: [],
+      body: { currentPassword: "demo1234", newPassword: "newSecurePassword123!" },
+      auth: true
+    },
+
+    // 3. Profiles & Search
+    {
+      category: "PROFILE",
+      method: "GET",
+      path: "/api/v1/profiles/me",
+      title: "Get My Full Student Profile",
+      params: [],
+      body: null,
+      auth: true
+    },
+    {
+      category: "PROFILE",
+      method: "PUT",
+      path: "/api/v1/profiles/me",
+      title: "Update My Profile Details & Status",
+      params: [],
+      body: {
+        firstName: "Alex",
+        lastName: "Mercer",
+        bio: "Updated bio via API Explorer! Coding at East Quad.",
+        course: "Computer Science",
+        academicYear: 3,
+        campusZone: "East Quad",
+        activityStatus: "FREE_FOR_COFFEE",
+        interests: ["CODING", "AI", "COFFEE"]
+      },
+      auth: true
+    },
+    {
+      category: "PROFILE",
+      method: "GET",
+      path: "/api/v1/users/search",
+      title: "Search Students by Keyword & Interests",
+      params: [
+        { name: "keyword", default: "Alex", in: "query" },
+        { name: "interests", default: "CODING", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+
+    // 4. Groups & Members
+    {
+      category: "GROUPS",
+      method: "GET",
+      path: "/api/v1/groups",
+      title: "List Campus Interest Groups",
+      params: [
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "GROUPS",
+      method: "POST",
+      path: "/api/v1/groups",
+      title: "Create Campus Interest Group",
+      params: [],
+      body: {
+        name: "Cloud & AI Innovators",
+        description: "Building autonomous AI agents and Cloudflare edge systems at TU Dublin.",
+        visibility: "PUBLIC",
+        joinToken: "JOIN-CLOUD-AI-" + Math.floor(Math.random() * 9000 + 1000)
+      },
+      auth: true
+    },
+    {
+      category: "GROUPS",
+      method: "GET",
+      path: "/api/v1/groups/{groupId}",
+      title: "Get Group Details by UUID",
+      params: [
+        { name: "groupId", default: "11111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "GROUPS",
+      method: "POST",
+      path: "/api/v1/groups/{groupId}/join",
+      title: "Join Group with Join Token",
+      params: [
+        { name: "groupId", default: "22222222-2222-2222-2222-222222222222", in: "path" }
+      ],
+      body: { joinToken: "JOIN-ROASTERY" },
+      auth: true
+    },
+    {
+      category: "GROUPS",
+      method: "GET",
+      path: "/api/v1/groups/{groupId}/members",
+      title: "List Group Members & Roles",
+      params: [
+        { name: "groupId", default: "11111111-1111-1111-1111-111111111111", in: "path" },
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+
+    // 5. Posts & Comments
+    {
+      category: "POSTS",
+      method: "GET",
+      path: "/api/v1/groups/{groupId}/posts",
+      title: "List Discussion Posts for Group",
+      params: [
+        { name: "groupId", default: "11111111-1111-1111-1111-111111111111", in: "path" },
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "POSTS",
+      method: "POST",
+      path: "/api/v1/groups/{groupId}/posts",
+      title: "Publish Discussion Post (Supports Anonymous Masking)",
+      params: [
+        { name: "groupId", default: "11111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: {
+        title: "Testing Anonymous Masking via Debugger",
+        content: "Will this show up as Anonymous Student or my real name?",
+        isAnonymous: true
+      },
+      auth: true
+    },
+    {
+      category: "POSTS",
+      method: "GET",
+      path: "/api/v1/posts/{postId}/comments",
+      title: "Get Threaded Comments for Post",
+      params: [
+        { name: "postId", default: "aaaa1111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "POSTS",
+      method: "POST",
+      path: "/api/v1/posts/{postId}/comments",
+      title: "Create Comment or Reply (Threaded parentId)",
+      params: [
+        { name: "postId", default: "aaaa1111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: {
+        content: "Great progress on the Cloudflare Edge deploy!",
+        parentId: null
+      },
+      auth: true
+    },
+
+    // 6. Events & Meetups
+    {
+      category: "EVENTS",
+      method: "GET",
+      path: "/api/v1/events",
+      title: "List Campus Events (Paginated)",
+      params: [
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "EVENTS",
+      method: "GET",
+      path: "/api/v1/events/upcoming",
+      title: "Get Upcoming Campus Events & Meetups",
+      params: [],
+      body: null,
+      auth: true
+    },
+    {
+      category: "EVENTS",
+      method: "POST",
+      path: "/api/v1/events",
+      title: "Create Campus Event or Spontaneous Meetup",
+      params: [],
+      body: {
+        title: "Sunset Study Sprint @ Central Quad",
+        description: "Group study session before exam week with pour-over coffee.",
+        category: "STUDY",
+        campusZone: "Central Quad",
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        maxParticipants: 10
+      },
+      auth: true
+    },
+    {
+      category: "EVENTS",
+      method: "GET",
+      path: "/api/v1/events/{eventId}",
+      title: "Get Event Details by ID",
+      params: [
+        { name: "eventId", default: "eeee1111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "EVENTS",
+      method: "POST",
+      path: "/api/v1/events/{eventId}/join",
+      title: "Join / RSVP to Campus Event",
+      params: [
+        { name: "eventId", default: "eeee1111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: {},
+      auth: true
+    },
+
+    // 7. Friendships
+    {
+      category: "FRIENDS",
+      method: "GET",
+      path: "/api/v1/friends",
+      title: "List Student Friends by Status",
+      params: [
+        { name: "status", default: "ACCEPTED", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "FRIENDS",
+      method: "POST",
+      path: "/api/v1/friends/request/{friendId}",
+      title: "Send Friend Request to Student UUID",
+      params: [
+        { name: "friendId", default: "00000000-0000-0000-0000-000000000002", in: "path" }
+      ],
+      body: {},
+      auth: true
+    },
+    {
+      category: "FRIENDS",
+      method: "PATCH",
+      path: "/api/v1/friends/{friendshipId}/accept",
+      title: "Accept Pending Friend Request",
+      params: [
+        { name: "friendshipId", default: "f1111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: {},
+      auth: true
+    },
+    {
+      category: "FRIENDS",
+      method: "DELETE",
+      path: "/api/v1/friends/{friendshipId}",
+      title: "Remove Friend or Cancel Request",
+      params: [
+        { name: "friendshipId", default: "f1111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+
+    // 8. Notifications
+    {
+      category: "NOTIFICATIONS",
+      method: "GET",
+      path: "/api/v1/notifications",
+      title: "List In-App Notifications",
+      params: [
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "NOTIFICATIONS",
+      method: "GET",
+      path: "/api/v1/notifications/count-unread",
+      title: "Count Unread Notifications Badge",
+      params: [],
+      body: null,
+      auth: true
+    },
+    {
+      category: "NOTIFICATIONS",
+      method: "PATCH",
+      path: "/api/v1/notifications/read-all",
+      title: "Mark All Notifications as Read",
+      params: [],
+      body: {},
+      auth: true
+    },
+    {
+      category: "NOTIFICATIONS",
+      method: "PATCH",
+      path: "/api/v1/notifications/{notificationId}/read",
+      title: "Mark Single Notification as Read",
+      params: [
+        { name: "notificationId", default: "n1111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: {},
+      auth: true
+    },
+
+    // 9. Channels & Chat
+    {
+      category: "CHANNELS",
+      method: "POST",
+      path: "/api/v1/channels",
+      title: "Create Real-Time Channel (GROUP_TEXT or DIRECT)",
+      params: [],
+      body: {
+        name: "dev-sprint",
+        type: "GROUP_TEXT",
+        groupId: "11111111-1111-1111-1111-111111111111"
+      },
+      auth: true
+    },
+    {
+      category: "CHANNELS",
+      method: "GET",
+      path: "/api/v1/channels/me",
+      title: "List My Subscribed Channels",
+      params: [
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "CHANNELS",
+      method: "POST",
+      path: "/api/v1/channels/direct",
+      title: "Get or Create 1-on-1 Direct Message Channel",
+      params: [
+        { name: "userId", default: "00000000-0000-0000-0000-000000000002", in: "query" }
+      ],
+      body: {},
+      auth: true
+    },
+    {
+      category: "CHANNELS",
+      method: "GET",
+      path: "/api/v1/channels/group/{groupId}",
+      title: "List Channels for Group",
+      params: [
+        { name: "groupId", default: "11111111-1111-1111-1111-111111111111", in: "path" },
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "CHANNELS",
+      method: "GET",
+      path: "/api/v1/channels/{channelId}/messages",
+      title: "Fetch Channel Messages (Snowflake Cursor / Paginated)",
+      params: [
+        { name: "channelId", default: "1001", in: "path" },
+        { name: "size", default: "30", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "CHANNELS",
+      method: "POST",
+      path: "/api/v1/channels/{channelId}/messages",
+      title: "Send Real-Time Message (Broadcasts STOMP)",
+      params: [
+        { name: "channelId", default: "1001", in: "path" }
+      ],
+      body: {
+        content: "Hello from the CampusLoop API Debugger! 🚀",
+        parentMessageId: null
+      },
+      auth: true
+    },
+    {
+      category: "CHANNELS",
+      method: "GET",
+      path: "/api/v1/channels/{channelId}/messages/last",
+      title: "Get Last Message in Channel",
+      params: [
+        { name: "channelId", default: "1001", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+
+    // 10. Geo & Ghost Mode
+    {
+      category: "GEO",
+      method: "POST",
+      path: "/api/v1/geo/location",
+      title: "Broadcast Live GPS Location (East Quad)",
+      params: [],
+      body: {
+        latitude: 53.3559,
+        longitude: -6.2792
+      },
+      auth: true
+    },
+    {
+      category: "GEO",
+      method: "DELETE",
+      path: "/api/v1/geo/ghost",
+      title: "Enable Ghost Mode (Remove Coordinates from Radar)",
+      params: [],
+      body: null,
+      auth: true
+    },
+    {
+      category: "GEO",
+      method: "GET",
+      path: "/api/v1/geo/friends",
+      title: "Find Nearby Mutual Friends in Radius",
+      params: [
+        { name: "radiusMeters", default: "5000", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+
+    // 11. Stories (Location-Based)
+    {
+      category: "STORIES",
+      method: "POST",
+      path: "/api/v1/stories",
+      title: "Create Location-Based Story (Auto-expires in 24h)",
+      params: [],
+      body: {
+        mediaFileKey: "stories/00000000-0000-0000-0000-000000000001/campus_view.jpg",
+        latitude: 53.3559,
+        longitude: -6.2792,
+        caption: "Sunset over Grangegorman East Quad! ☕",
+        privacy: "EVERYONE"
+      },
+      auth: true
+    },
+    {
+      category: "STORIES",
+      method: "GET",
+      path: "/api/v1/stories/nearby",
+      title: "Find Stories Nearby on Map Radar",
+      params: [
+        { name: "latitude", default: "53.3559", in: "query" },
+        { name: "longitude", default: "-6.2792", in: "query" },
+        { name: "radiusMeters", default: "5000", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "STORIES",
+      method: "GET",
+      path: "/api/v1/stories/user/{targetUserId}",
+      title: "Get Active Stories for Specific User",
+      params: [
+        { name: "targetUserId", default: "00000000-0000-0000-0000-000000000002", in: "path" },
+        { name: "page", default: "0", in: "query" },
+        { name: "size", default: "20", in: "query" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "STORIES",
+      method: "GET",
+      path: "/api/v1/stories/{storyId}",
+      title: "Get Story Details by ID",
+      params: [
+        { name: "storyId", default: "s1111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+    {
+      category: "STORIES",
+      method: "DELETE",
+      path: "/api/v1/stories/{storyId}",
+      title: "Delete Story (Author Only)",
+      params: [
+        { name: "storyId", default: "s1111111-1111-1111-1111-111111111111", in: "path" }
+      ],
+      body: null,
+      auth: true
+    },
+
+    // 12. Storage (S3 / MinIO)
+    {
+      category: "STORAGE",
+      method: "POST",
+      path: "/api/v1/storage/upload-url",
+      title: "Request Presigned Upload URL for S3 Object",
+      params: [],
+      body: {
+        folderName: "avatars",
+        fileName: "profile_avatar.png"
+      },
+      auth: true
+    },
+    {
+      category: "STORAGE",
+      method: "DELETE",
+      path: "/api/v1/storage",
+      title: "Delete Object from Storage (Owner Check)",
+      params: [],
+      body: {
+        fileKey: "avatars/00000000-0000-0000-0000-000000000001/sample.png"
+      },
+      auth: true
+    },
+    {
+      category: "STORAGE",
+      method: "PUT",
+      path: "/api/v1/storage/object/{key}",
+      title: "Direct Binary Upload to Presigned Storage Path",
+      params: [
+        { name: "key", default: "test/test-payload.txt", in: "path" }
+      ],
+      body: "Sample binary text payload uploaded to CampusLoop edge object storage.",
+      raw: true,
+      auth: true
+    },
+    {
+      category: "STORAGE",
+      method: "GET",
+      path: "/api/v1/storage/object/{key}",
+      title: "Fetch Stored Object by Key",
+      params: [
+        { name: "key", default: "test/test-payload.txt", in: "path" }
+      ],
+      body: null,
+      auth: false
+    },
+
+    // 13. AI & Promos
+    {
+      category: "AI",
+      method: "GET",
+      path: "/api/v1/ai/config",
+      title: "Get AI Recommendation Engine Configuration",
+      params: [],
+      body: null,
+      auth: false
+    },
+    {
+      category: "AI",
+      method: "POST",
+      path: "/api/v1/admin/ai/config",
+      title: "Update AI Campus Popularity & Vibe (Admin)",
+      params: [],
+      body: {
+        campusVibe: "High Energy Sprint",
+        popularityMultiplier: 1.5,
+        promoActive: true,
+        prompt: "Recommend high energy hackathon sprints and artisan espresso runs."
+      },
+      auth: true
+    },
+    {
+      category: "AI",
+      method: "GET",
+      path: "/api/v1/ai/suggestions",
+      title: "Get AI Powered Campus Meetup Suggestions",
+      params: [
+        { name: "zone", default: "East Quad", in: "query" },
+        { name: "activity", default: "CODING", in: "query" }
+      ],
+      body: null,
+      auth: false
+    },
+    {
+      category: "AI",
+      method: "GET",
+      path: "/api/v1/promos",
+      title: "List Active Campus Meal & Coffee Promo Codes",
+      params: [],
+      body: null,
+      auth: false
+    },
+    {
+      category: "AI",
+      method: "POST",
+      path: "/api/v1/admin/promos",
+      title: "Create Campus Promo Code (Admin)",
+      params: [],
+      body: {
+        code: "HACKERSPRINT30",
+        title: "30% off pour-overs at East Quad Cafe",
+        discountPercent: 30,
+        expiresAt: new Date(Date.now() + 86400000 * 7).toISOString()
+      },
+      auth: true
+    }
+  ];
+
+  function init() {
+    document.getElementById("countAll").textContent = ENDPOINTS.length;
+    renderEndpoints();
+    connectStomp();
+  }
+
+  function onEnvChange() {
+    const sel = document.getElementById("envSelect");
+    const custom = document.getElementById("customEnvInput");
+    if (sel.value === "custom") {
+      custom.style.display = "inline-block";
+      custom.focus();
+      activeBaseUrl = custom.value.trim() || "http://localhost:8080";
+    } else {
+      custom.style.display = "none";
+      activeBaseUrl = sel.value;
+    }
+    reconnectStomp();
+  }
+
+  function onCustomEnvInput() {
+    const custom = document.getElementById("customEnvInput");
+    activeBaseUrl = custom.value.trim();
+  }
+
+  async function quickLogin(login, password, displayName) {
+    try {
+      const res = await fetch(activeBaseUrl + "/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login, password })
+      });
+      if (!res.ok) {
+        alert("Login failed with status: " + res.status);
+        return;
+      }
+      const data = await res.json();
+      activeJwt = data.accessToken || data.token || "";
+      localStorage.setItem("campusloop_jwt", activeJwt);
+      document.getElementById("jwtInput").value = activeJwt;
+      document.getElementById("activeUserBadge").textContent = displayName + " (" + login + ")";
+      reconnectStomp();
+    } catch (e) {
+      alert("Error logging in: " + e.message);
+    }
+  }
+
+  function onJwtManualChange() {
+    activeJwt = document.getElementById("jwtInput").value.trim();
+    localStorage.setItem("campusloop_jwt", activeJwt);
+    document.getElementById("activeUserBadge").textContent = activeJwt ? "Custom JWT Active" : "Unauthenticated";
+    reconnectStomp();
+  }
+
+  function clearToken() {
+    activeJwt = "";
+    localStorage.removeItem("campusloop_jwt");
+    document.getElementById("jwtInput").value = "";
+    document.getElementById("activeUserBadge").textContent = "alex_tud (Default Demo Student)";
+    reconnectStomp();
+  }
+
+  function filterCategory(cat) {
+    activeCategory = cat;
+    document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+    event.currentTarget.classList.add("active");
+    renderEndpoints();
+  }
+
+  function onSearchInput() {
+    activeSearch = document.getElementById("searchInput").value.trim().toLowerCase();
+    renderEndpoints();
+  }
+
+  function expandAll(open) {
+    document.querySelectorAll(".endpoint-card").forEach(c => {
+      if (open) c.classList.add("open");
+      else c.classList.remove("open");
+    });
+  }
+
+  function toggleCard(idx) {
+    const card = document.getElementById("card-" + idx);
+    card.classList.toggle("open");
+  }
+
+  function renderEndpoints() {
+    const container = document.getElementById("endpointsList");
+    const filtered = ENDPOINTS.filter((ep, idx) => {
+      if (activeCategory !== "ALL" && ep.category !== activeCategory) return false;
+      if (activeSearch) {
+        const text = (ep.method + " " + ep.path + " " + ep.title).toLowerCase();
+        if (!text.includes(activeSearch)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">No matching endpoints found.</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map((ep, filteredIdx) => {
+      const idx = ENDPOINTS.indexOf(ep);
+      const isPostOrPut = ep.method === "POST" || ep.method === "PUT" || ep.method === "PATCH";
+      const hasParams = ep.params && ep.params.length > 0;
+      const bodyJson = ep.body ? (typeof ep.body === "string" ? ep.body : JSON.stringify(ep.body, null, 2)) : "";
+
+      return `
+        <div class="endpoint-card" id="card-${idx}">
+          <div class="card-header" onclick="toggleCard(${idx})">
+            <div class="card-header-left">
+              <span class="method-badge method-${ep.method}">${ep.method}</span>
+              <span class="endpoint-path">${ep.path}</span>
+              <span class="endpoint-title">${ep.title}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${ep.auth ? '<span class="pill pill-orange">Bearer Auth</span>' : '<span class="pill pill-blue">Public</span>'}
+              <span style="font-size:12px;color:var(--text-muted)">▼</span>
+            </div>
+          </div>
+          <div class="card-body">
+            ${hasParams ? `
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">URL Parameters</div>
+              <div class="form-grid">
+                ${ep.params.map(p => `
+                  <div class="form-field">
+                    <label>${p.name} (${p.in}):</label>
+                    <input id="param-${idx}-${p.name}" value="${p.default || ''}" placeholder="${p.name}" />
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            ${isPostOrPut ? `
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Request Body ${ep.raw ? '(Raw)' : '(JSON)'}</div>
+              <textarea class="code-area" id="body-${idx}">${bodyJson}</textarea>
+            ` : ''}
+
+            <div class="card-actions">
+              <button class="btn-primary" onclick="executeEndpoint(${idx})">▶ Send Request</button>
+              <button onclick="copyCurl(${idx})">📋 Copy cURL</button>
+              <button class="btn-sm" onclick="resetCard(${idx})">Reset Defaults</button>
+            </div>
+
+            <div class="response-box" id="resbox-${idx}">
+              <div class="response-header">
+                <div>Status: <span class="status-badge" id="status-${idx}">---</span> · Time: <span id="time-${idx}">0ms</span></div>
+                <button class="btn-sm" onclick="copyResponse(${idx})">Copy JSON</button>
+              </div>
+              <div class="response-body" id="resbody-${idx}"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function resolvePathAndQuery(ep, idx) {
+    let resolved = ep.path;
+    const queryParams = new URLSearchParams();
+
+    if (ep.params) {
+      ep.params.forEach(p => {
+        const input = document.getElementById(`param-${idx}-${p.name}`);
+        const val = input ? input.value.trim() : (p.default || "");
+        if (p.in === "path") {
+          resolved = resolved.replace(`{${p.name}}`, encodeURIComponent(val));
+        } else if (p.in === "query" && val) {
+          queryParams.append(p.name, val);
+        }
+      });
+    }
+
+    const qs = queryParams.toString();
+    const finalPath = qs ? `${resolved}?${qs}` : resolved;
+    return { path: finalPath, fullUrl: activeBaseUrl.replace(/\/+$/, '') + finalPath };
+  }
+
+  async function executeEndpoint(idx) {
+    const ep = ENDPOINTS[idx];
+    const { fullUrl } = resolvePathAndQuery(ep, idx);
+    const box = document.getElementById(`resbox-${idx}`);
+    const statusEl = document.getElementById(`status-${idx}`);
+    const timeEl = document.getElementById(`time-${idx}`);
+    const bodyEl = document.getElementById(`resbody-${idx}`);
+
+    box.style.display = "block";
+    bodyEl.textContent = "Sending request to " + fullUrl + "...";
+    statusEl.textContent = "PENDING";
+    statusEl.className = "status-badge";
+
+    const headers = {};
+    if (activeJwt) {
+      headers["Authorization"] = "Bearer " + activeJwt;
+    }
+    if (ep.method !== "GET" && ep.method !== "DELETE") {
+      if (ep.raw) {
+        headers["Content-Type"] = "text/plain";
+      } else {
+        headers["Content-Type"] = "application/json";
+      }
+    }
+
+    let requestBody = null;
+    const bodyInput = document.getElementById(`body-${idx}`);
+    if (bodyInput && (ep.method === "POST" || ep.method === "PUT" || ep.method === "PATCH")) {
+      requestBody = bodyInput.value.trim() || undefined;
+    }
+
+    const t0 = performance.now();
+    try {
+      const res = await fetch(fullUrl, {
+        method: ep.method,
+        headers,
+        body: requestBody
+      });
+      const t1 = performance.now();
+      const elapsed = Math.round(t1 - t0);
+      timeEl.textContent = elapsed + "ms";
+
+      statusEl.textContent = res.status + " " + res.statusText;
+      statusEl.className = "status-badge " + (res.ok ? "status-2xx" : (res.status >= 500 ? "status-5xx" : "status-4xx"));
+
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const json = await res.json();
+        bodyEl.textContent = JSON.stringify(json, null, 2);
+      } else {
+        const txt = await res.text();
+        bodyEl.textContent = txt || "(Empty " + res.status + " Response)";
+      }
+    } catch (err) {
+      const t1 = performance.now();
+      timeEl.textContent = Math.round(t1 - t0) + "ms";
+      statusEl.textContent = "NETWORK ERROR";
+      statusEl.className = "status-badge status-5xx";
+      bodyEl.textContent = "Fetch Exception: " + err.message + "\nCheck CORS headers, server status, or URL connectivity.";
+    }
+  }
+
+  function copyCurl(idx) {
+    const ep = ENDPOINTS[idx];
+    const { fullUrl } = resolvePathAndQuery(ep, idx);
+    let curl = `curl -X ${ep.method} "${fullUrl}"`;
+
+    if (activeJwt) {
+      curl += ` \\\n  -H "Authorization: Bearer ${activeJwt}"`;
+    }
+    if (ep.method === "POST" || ep.method === "PUT" || ep.method === "PATCH") {
+      const bodyInput = document.getElementById(`body-${idx}`);
+      const body = bodyInput ? bodyInput.value.trim() : "";
+      if (body) {
+        curl += ` \\\n  -H "Content-Type: ${ep.raw ? 'text/plain' : 'application/json'}"`;
+        curl += ` \\\n  -d '${body.replace(/'/g, "'\\''")}'`;
+      }
+    }
+
+    navigator.clipboard.writeText(curl);
+    alert("cURL command copied to clipboard!");
+  }
+
+  function copyResponse(idx) {
+    const bodyEl = document.getElementById(`resbody-${idx}`);
+    navigator.clipboard.writeText(bodyEl.textContent);
+    alert("Response copied to clipboard!");
+  }
+
+  function resetCard(idx) {
+    const ep = ENDPOINTS[idx];
+    if (ep.params) {
+      ep.params.forEach(p => {
+        const el = document.getElementById(`param-${idx}-${p.name}`);
+        if (el) el.value = p.default || "";
+      });
+    }
+    const bodyInput = document.getElementById(`body-${idx}`);
+    if (bodyInput) {
+      bodyInput.value = ep.body ? (typeof ep.body === "string" ? ep.body : JSON.stringify(ep.body, null, 2)) : "";
+    }
+  }
+
+  // STOMP WebSocket Live Connection
+  function toggleStompDrawer() {
+    const drawer = document.getElementById("stompConsoleDrawer");
+    drawer.style.display = drawer.style.display === "none" ? "block" : "none";
+  }
+
+  function appendStompLog(msg, color) {
+    const log = document.getElementById("stompLogArea");
+    const line = document.createElement("div");
+    line.className = "stomp-log-line";
+    if (color) line.style.color = color;
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function clearStompLog() {
+    document.getElementById("stompLogArea").innerHTML = "";
+  }
+
+  function connectStomp() {
+    if (stompWs) {
+      try { stompWs.close(); } catch {}
+    }
+    const badge = document.getElementById("wsStatusBadge");
+    badge.textContent = "WS: Connecting...";
+    badge.className = "pill pill-orange";
+
+    const wsUrl = activeBaseUrl.replace(/^http/, "ws") + "/ws";
+    appendStompLog(`Connecting to STOMP WebSocket broker at ${wsUrl}...`, "var(--text-muted)");
+
+    try {
+      stompWs = new WebSocket(wsUrl);
+      stompWs.onopen = () => {
+        appendStompLog("WebSocket TCP handshake completed. Sending STOMP CONNECT frame...", "var(--blue)");
+        const connectHeaders = activeJwt ? `Authorization:Bearer ${activeJwt}\n` : "";
+        stompWs.send(`CONNECT\naccept-version:1.2\n${connectHeaders}\n\0`);
+      };
+
+      stompWs.onmessage = (e) => {
+        const data = String(e.data);
+        if (data.startsWith("CONNECTED")) {
+          badge.textContent = "WS: 🟢 STOMP 1.2 Connected";
+          badge.className = "pill pill-green";
+          appendStompLog("STOMP Handshake SUCCESS! Connected to broker.", "var(--lime)");
+
+          // Auto subscribe to topics
+          stompWs.send(`SUBSCRIBE\nid:sub-events\ndestination:/topic/events\n\n\0`);
+          stompWs.send(`SUBSCRIBE\nid:sub-messages\ndestination:/topic/channels/1001/messages\n\n\0`);
+          stompWs.send(`SUBSCRIBE\nid:sub-geo\ndestination:/user/queue/geo/friends\n\n\0`);
+          stompWs.send(`SUBSCRIBE\nid:sub-stories\ndestination:/topic/stories\n\n\0`);
+          appendStompLog("Subscribed to /topic/events, /topic/channels/1001/messages, /topic/stories, /user/queue/geo/friends", "var(--cyan)");
+        } else if (data.startsWith("MESSAGE")) {
+          appendStompLog("⚡ INCOMING STOMP BROADCAST:\n" + data.trim(), "var(--lime)");
+        } else {
+          appendStompLog("RAW FRAME:\n" + data.trim(), "var(--text-muted)");
+        }
+      };
+
+      stompWs.onerror = (err) => {
+        badge.textContent = "WS: 🔴 Error";
+        badge.className = "pill pill-orange";
+        appendStompLog("WebSocket error encountered.", "var(--red)");
+      };
+
+      stompWs.onclose = () => {
+        badge.textContent = "WS: 🔴 Disconnected";
+        badge.className = "pill pill-orange";
+        appendStompLog("WebSocket connection closed.", "var(--text-muted)");
+      };
+    } catch (err) {
+      badge.textContent = "WS: 🔴 Failed";
+      appendStompLog("WebSocket initialization failed: " + err.message, "var(--red)");
+    }
+  }
+
+  function reconnectStomp() {
+    connectStomp();
+  }
+
+  window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Limit src/ folder: ignore local application secrets and compiled class artifacts
+main/resources/application.yml
+main/resources/application.properties
+main/resources/application-*.yml
+main/resources/application-*.properties
+*.class
+*.log
+*.tmp

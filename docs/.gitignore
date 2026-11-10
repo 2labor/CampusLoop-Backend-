@@ -1,0 +1,6 @@
+# Allow Markdown (*.md) and HTML (*.html) files in docs/
+*
+!*/
+!*.md
+!*.html
+!.gitignore

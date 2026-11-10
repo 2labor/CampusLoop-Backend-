@@ -1,0 +1,8 @@
+# Limit cloudflare-edge/ folder: ignore wrangler cache, node_modules, and local env files
+.wrangler/
+node_modules/
+dist/
+.dev.vars
+.env
+.env.*
+*.log
