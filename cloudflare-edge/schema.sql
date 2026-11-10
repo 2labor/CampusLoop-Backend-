@@ -159,6 +159,19 @@ CREATE TABLE IF NOT EXISTS storage_files (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS stories (
+    id TEXT PRIMARY KEY,
+    media_file_key TEXT NOT NULL,
+    caption TEXT,
+    user_id TEXT NOT NULL,
+    privacy_settings TEXT NOT NULL DEFAULT 'EVERYONE',
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- Seed initial data (Users, Groups, Posts, Comments, Events, Channels, Messages)
 INSERT OR IGNORE INTO users (id, email, username, login, password_hash, first_name, last_name, bio, course, academic_year, campus_zone, activity_status, created_at, updated_at)
 VALUES
@@ -205,3 +218,7 @@ INSERT OR IGNORE INTO geo_locations (user_id, longitude, latitude, updated_at)
 VALUES
 ('00000000-0000-0000-0000-000000000002', -6.2785, 53.3562, '2026-11-09T19:00:00Z'),
 ('00000000-0000-0000-0000-000000000003', -6.2801, 53.3548, '2026-11-09T19:00:00Z');
+
+INSERT OR IGNORE INTO stories (id, media_file_key, caption, user_id, privacy_settings, latitude, longitude, expires_at, created_at, updated_at)
+VALUES
+('s1111111-1111-1111-1111-111111111111', 'stories/00000000-0000-0000-0000-000000000002/sample_story.jpg', 'Coding sprint at East Quad atrium!', '00000000-0000-0000-0000-000000000002', 'EVERYONE', 53.3559, -6.2792, '2026-11-12T20:00:00Z', '2026-11-10T17:00:00Z', '2026-11-10T17:00:00Z');

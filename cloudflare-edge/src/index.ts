@@ -1,3 +1,5 @@
+import { getApiTesterHtml } from "./apiTesterHtml";
+
 export interface Env {
   DB: D1Database;
   AUTH_KV: KVNamespace;
@@ -361,16 +363,26 @@ export default {
       return jsonResponse({
         service: "CampusLoop-Backend (Cloudflare Edge + D1)",
         account: "hazed0m (hazekk94@gmail.com)",
-        commit: "23b61dc + security-audit PR #1",
-        controllers: 18,
+        commit: "c82e7d4 (Stories + MinIO + STOMP + D1)",
+        controllers: 19,
         websocket: "/ws (STOMP 1.2)",
         webApp: "https://campusloop-api.rohovskyi.dev/app",
+        apiTester: "https://campusloop-api.rohovskyi.dev/debug",
+        debuggingGuide: "https://github.com/2labor/CampusLoop-Backend-/blob/main/docs/API_DEBUGGING_GUIDE.md",
         collegeAdmins: [
           { email: "hazekk94@gmail.com", provider: "GOOGLE", username: "hazekk94", role: "Lead Admin (Ruslan)" },
           { email: "c24393471@mytudublin.ie", provider: "OUTLOOK", username: "c24393471_outlook", role: "Backend Lead (C24393471)" }
         ],
         status: "UP",
         timestamp: now,
+      });
+    }
+
+    // API Tester & Interactive Debugger (/debug, /api-explorer, /tester)
+    if ((path === "/debug" || path === "/api-explorer" || path === "/tester") && method === "GET") {
+      return new Response(getApiTesterHtml(), {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8", ...CORS_HEADERS },
       });
     }
 
@@ -560,7 +572,7 @@ export default {
     if (path === "/api/v1/auth/login" && method === "POST") {
       await ensureCollegeAdmins(env, now);
       const body = (await req.json()) as Record<string, string>;
-      const cred = (body.credentials || body.email || body.username || "").trim();
+      const cred = (body.credentials || body.login || body.email || body.username || "").trim();
       const password = body.password || "";
       const provider = body.provider ? body.provider.toUpperCase() : null;
 
@@ -583,6 +595,8 @@ export default {
       );
       return jsonResponse({
         token,
+        accessToken: token,
+        tokenType: "Bearer",
         userId: user.id,
         username: user.username,
         email: user.email,
@@ -1341,6 +1355,124 @@ export default {
           headers: { "Content-Type": obj.content_type, ...CORS_HEADERS },
         });
       }
+    }
+
+    // 19. StoryController (/api/v1/stories) - Location-based ephemeral campus stories
+    if (path === "/api/v1/stories" && method === "POST") {
+      const body = (await req.json()) as {
+        mediaFileKey: string;
+        latitude: number;
+        longitude: number;
+        caption?: string;
+        privacy?: string;
+      };
+      const storyId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 86400000).toISOString();
+      const privacy = body.privacy || "EVERYONE";
+      await env.DB.prepare(
+        `INSERT INTO stories (id, media_file_key, caption, user_id, privacy_settings, latitude, longitude, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          storyId,
+          body.mediaFileKey,
+          body.caption || null,
+          authUser.sub,
+          privacy,
+          Number(body.latitude),
+          Number(body.longitude),
+          expiresAt,
+          now,
+          now
+        )
+        .run();
+
+      const mediaUrl = `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(body.mediaFileKey)}`;
+      const resp = {
+        id: storyId,
+        mediaUrl,
+        caption: body.caption || null,
+        authorId: authUser.sub,
+        authorName: authUser.username,
+        privacySetting: privacy,
+        createdAt: now,
+      };
+      broadcastStomp("/topic/stories", "CREATED", storyId, resp);
+      return jsonResponse(resp, 201);
+    }
+
+    if (path === "/api/v1/stories/nearby" && method === "GET") {
+      const lat = Number(url.searchParams.get("latitude") || 53.3559);
+      const lon = Number(url.searchParams.get("longitude") || -6.2792);
+      const radius = Number(url.searchParams.get("radiusMeters") || url.searchParams.get("radiusInMeters") || 5000);
+
+      const stories = await env.DB.prepare(
+        `SELECT s.*, u.username as author_name FROM stories s JOIN users u ON s.user_id = u.id WHERE s.expires_at > ?`
+      ).bind(now).all<Record<string, unknown>>();
+
+      const filtered = (stories.results || [])
+        .filter((s) => {
+          const dist = haversineMeters(lat, lon, Number(s.latitude), Number(s.longitude));
+          return dist <= radius;
+        })
+        .map((s) => ({
+          storyId: String(s.id),
+          authorId: String(s.user_id),
+          authorName: String(s.author_name || "Student"),
+          latitude: Number(s.latitude),
+          longitude: Number(s.longitude),
+          mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(String(s.media_file_key))}`,
+          caption: s.caption ? String(s.caption) : null,
+          createdAt: String(s.created_at),
+        }));
+
+      return jsonResponse(filtered);
+    }
+
+    const userStoriesMatch = path.match(/^\/api\/v1\/stories\/user\/([a-zA-Z0-9_-]+)$/);
+    if (userStoriesMatch && method === "GET") {
+      const targetUserId = userStoriesMatch[1];
+      const page = Number(url.searchParams.get("page") || 0);
+      const size = Number(url.searchParams.get("size") || 20);
+      const stories = await env.DB.prepare(
+        `SELECT s.*, u.username as author_name FROM stories s JOIN users u ON s.user_id = u.id WHERE s.user_id = ? AND s.expires_at > ? ORDER BY s.created_at DESC LIMIT ? OFFSET ?`
+      ).bind(targetUserId, now, size, page * size).all<Record<string, unknown>>();
+
+      const content = (stories.results || []).map((s) => ({
+        id: String(s.id),
+        mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(String(s.media_file_key))}`,
+        caption: s.caption ? String(s.caption) : null,
+        authorId: String(s.user_id),
+        authorName: String(s.author_name || "Student"),
+        privacySetting: String(s.privacy_settings || "EVERYONE"),
+        createdAt: String(s.created_at),
+      }));
+
+      return jsonResponse(sliceResponse(content, page, size));
+    }
+
+    const singleStoryMatch = path.match(/^\/api\/v1\/stories\/([a-zA-Z0-9_-]+)$/);
+    if (singleStoryMatch && method === "GET") {
+      const storyId = singleStoryMatch[1];
+      const s = await env.DB.prepare(
+        `SELECT s.*, u.username as author_name FROM stories s JOIN users u ON s.user_id = u.id WHERE s.id = ?`
+      ).bind(storyId).first<Record<string, unknown>>();
+
+      if (!s) return jsonResponse({ message: "Story not found" }, 404);
+      return jsonResponse({
+        id: String(s.id),
+        mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(String(s.media_file_key))}`,
+        caption: s.caption ? String(s.caption) : null,
+        authorId: String(s.user_id),
+        authorName: String(s.author_name || "Student"),
+        privacySetting: String(s.privacy_settings || "EVERYONE"),
+        createdAt: String(s.created_at),
+      });
+    }
+
+    if (singleStoryMatch && method === "DELETE") {
+      const storyId = singleStoryMatch[1];
+      await env.DB.prepare(`DELETE FROM stories WHERE id = ? AND user_id = ?`).bind(storyId, authUser.sub).run();
+      return emptyResponse(204);
     }
 
     return jsonResponse({ message: `Endpoint ${method} ${path} not found` }, 404);

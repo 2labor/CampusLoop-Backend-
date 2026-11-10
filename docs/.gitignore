@@ -1,5 +1,6 @@
-# Limit docs/ folder strictly to Markdown (*.md) files
+# Allow Markdown (*.md) and HTML (*.html) files in docs/
 *
 !*/
 !*.md
+!*.html
 !.gitignore
