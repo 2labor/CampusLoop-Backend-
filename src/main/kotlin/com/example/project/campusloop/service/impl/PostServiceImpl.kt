@@ -7,6 +7,7 @@ import com.example.project.campusloop.domain.entity.Post
 import com.example.project.campusloop.domain.enum.GroupMemberRole
 import com.example.project.campusloop.domain.enum.GroupMemberStatus
 import com.example.project.campusloop.repository.PostRepository
+import com.example.project.campusloop.service.AttachmentService
 import com.example.project.campusloop.service.GroupMemberService
 import com.example.project.campusloop.service.GroupService
 import com.example.project.campusloop.service.PostService
@@ -24,6 +25,7 @@ class PostServiceImpl (
     private val groupService: GroupService,
     private val memberService: GroupMemberService,
     private val userService: UserService,
+    private val attachmentService: AttachmentService,
 ) : PostService {
 
     @Transactional
@@ -49,6 +51,13 @@ class PostServiceImpl (
             author = author,
             isAnonymous = command.isAnonymous
         )
+
+        if (command.attachments.isNotEmpty()) {
+           command.attachments.forEach { attComm ->
+               val attachment = attachmentService.createAttachment(attComm)
+               post.attachments.add(attachment)
+           }
+        }
 
         return repository.save(post)
     }
@@ -78,6 +87,10 @@ class PostServiceImpl (
         val group = post.group
 
         memberService.validateMemberRole(operatorId, group, GroupMemberRole.MODERATOR)
+
+        if (post.attachments.isNotEmpty()) {
+            attachmentService.deleteAllAttachments(post.attachments)
+        }
 
         repository.delete(post)
     }

@@ -1,11 +1,13 @@
 package com.example.project.campusloop.domain.entity
 
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.Instant
@@ -31,6 +33,9 @@ class Message (
     @JoinColumn(name = "parent_message")
     val parentMessage: Message? = null,
 
+    @OneToMany(mappedBy = "message", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val attachments: MutableList<Attachment> = mutableListOf(),
+
     @Column(name = "create_at", nullable = false)
     val createdAt: Instant = Instant.now(),
 
@@ -40,5 +45,10 @@ class Message (
     @PreUpdate
     fun onUpdate() {
         updatedAt = Instant.now()
+    }
+
+    fun addAttachment(attachment: Attachment) {
+        attachments.add(attachment)
+        attachment.message = this
     }
 }

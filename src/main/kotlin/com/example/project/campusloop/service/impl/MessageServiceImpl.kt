@@ -8,6 +8,7 @@ import com.example.project.campusloop.domain.enum.GroupMemberRole
 import com.example.project.campusloop.domain.enum.HistoryDirection
 import com.example.project.campusloop.infra.websocket.realtime.service.MessageDispatchService
 import com.example.project.campusloop.repository.MessageRepository
+import com.example.project.campusloop.service.AttachmentService
 import com.example.project.campusloop.service.ChannelMemberService
 import com.example.project.campusloop.service.ChannelService
 import com.example.project.campusloop.service.GroupMemberService
@@ -30,6 +31,7 @@ class MessageServiceImpl (
     private val userService: UserService,
     private val groupMemberService: GroupMemberService,
     private val dispatchService: MessageDispatchService,
+    private val attachmentService: AttachmentService
 ) : MessageService {
 
     @Transactional
@@ -65,6 +67,13 @@ class MessageServiceImpl (
             channel = channel,
             parentMessage = parentMessage,
         )
+
+        if (command.attachments.isNotEmpty()) {
+            command.attachments.forEach { attComm ->
+                val attachment = attachmentService.createAttachment(attComm)
+                message.attachments.add(attachment)
+            }
+        }
 
         val saved = repository.save(message)
 
@@ -126,6 +135,12 @@ class MessageServiceImpl (
                     groupMemberService.validateMemberRole(operatorId, message.channel.group!!, GroupMemberRole.MODERATOR)
                 }
             }
+        }
+
+        if (message.attachments.isNotEmpty()) {
+            attachmentService.deleteAllAttachments(
+                message.attachments
+            )
         }
 
         repository.delete(message)
