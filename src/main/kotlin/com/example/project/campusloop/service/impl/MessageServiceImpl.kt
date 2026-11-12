@@ -173,7 +173,7 @@ class MessageServiceImpl (
     ): Message? {
         val lastMessage = repository.findFirstByChannelIdOrderByIdDesc(channelId)
 
-        if (lastMessage != null && memberService.isMember(lastMessage.channel, operatorId)) {
+        if (lastMessage != null && !memberService.isMember(lastMessage.channel, operatorId)) {
             throw IllegalArgumentException("You have to be member of a channel to get a message!")
         }
 

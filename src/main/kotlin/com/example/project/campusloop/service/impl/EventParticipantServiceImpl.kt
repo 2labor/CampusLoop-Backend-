@@ -53,7 +53,7 @@ class EventParticipantServiceImpl (
 
         val event = eventService.getEventDetails(eventId)
 
-        if (event.eventStatus != EventStatus.UPCOMING) {
+        if (event.eventStatus != EventStatus.UPCOMING || event.startTime.isBefore(Instant.now())) {
             throw IllegalStateException("Cannot join an event that is not upcoming")
         }
 
@@ -90,7 +90,13 @@ class EventParticipantServiceImpl (
     override fun leaveEvent(userId: UUID, eventId: UUID) {
         val participant = findParticipant(eventId, userId)
 
-        if (participant.event.creator.id == userId) {
+        val event = participant.event
+
+        if (event.startTime.isBefore(Instant.now()) || event.eventStatus == EventStatus.CANCELLED || event.eventStatus == EventStatus.COMPLETED) {
+            throw IllegalStateException("Status of event with id $eventId is different from the upcoming")
+        }
+
+        if (event.creator.id == userId) {
             throw IllegalStateException("Event creator cannot leave their own event")
         }
 
@@ -112,12 +118,20 @@ class EventParticipantServiceImpl (
             throw IllegalArgumentException("You cannot edit event that is not owed by you")
         }
 
+        if (event.creator.id == targetUserId) {
+            throw IllegalArgumentException("You cannot edit participant due to the ownership")
+        }
+
+        if (event.eventStatus == EventStatus.CANCELLED || event.eventStatus == EventStatus.COMPLETED || event.startTime.isBefore(Instant.now())) {
+            throw IllegalStateException("You cannot edit participant for event that is currently running or its status is different to upcoming")
+        }
+
         val participant = findParticipant(eventId, targetUserId)
 
         if (newStatus == ParticipantStatus.APPROVED && participant.status != ParticipantStatus.APPROVED) {
             if (event.maxParticipants != null) {
                 val currentApprovedCount = repository.countByEventIdAndStatus(eventId, ParticipantStatus.APPROVED)
-                if (currentApprovedCount <= event.maxParticipants!!) {
+                if (currentApprovedCount >= event.maxParticipants!!) {
                     throw IllegalStateException("Event has reached its maximum participant limit")
                 }
             }

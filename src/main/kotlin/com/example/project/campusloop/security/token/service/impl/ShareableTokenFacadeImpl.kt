@@ -1,7 +1,7 @@
 package com.example.project.campusloop.security.token.service.impl
 
 import com.example.project.campusloop.domain.enum.TokenType
-import com.example.project.campusloop.security.domain.entity.Token
+import com.example.project.campusloop.security.domain.entity.ShareableToken
 import com.example.project.campusloop.security.token.service.ShareableTargetHandler
 import com.example.project.campusloop.security.token.service.ShareableTokenService
 import org.springframework.stereotype.Service
@@ -27,7 +27,7 @@ class ShareableTokenFacadeImpl(
         targetEntityId: String,
         durationInMinutes: Long = 1440,
         maxUses: Int? = null
-    ): Token {
+    ): ShareableToken {
         val handler = getHandlerOrThrow(type)
         return handler.createToken(operatorId, type, targetEntityId, durationInMinutes, maxUses)
     }

@@ -1,7 +1,7 @@
 package com.example.project.campusloop.security.token.service
 
 import com.example.project.campusloop.domain.enum.TokenType
-import com.example.project.campusloop.security.domain.entity.Token
+import com.example.project.campusloop.security.domain.entity.ShareableToken
 import java.util.UUID
 
 interface ShareableTargetHandler<T> {
@@ -12,6 +12,6 @@ interface ShareableTargetHandler<T> {
         targetEntityId: String,
         durationInMinutes: Long = 1440,
         maxUses: Int? = null
-    ): Token
+    ): ShareableToken
     fun processToken(type: TokenType, operatorId: UUID, targetEntityId: String)
 }

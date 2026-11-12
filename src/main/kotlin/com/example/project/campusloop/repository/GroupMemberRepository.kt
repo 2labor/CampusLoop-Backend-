@@ -14,6 +14,7 @@ interface GroupMemberRepository : JpaRepository<GroupMember, UUID> {
     fun findByGroupAndUser(group: Group, user: User): Optional<GroupMember>
     fun findAllByGroup(group: Group, pageable: Pageable): Slice<GroupMember>
     fun findAllByUser(user: User, pageable: Pageable): Slice<GroupMember>
+    fun findByGroupIdAndUserId(groupId: UUID, userId: UUID): GroupMember?
     fun findMemberByUserIdAndGroupId(groupId: UUID, userId: UUID): GroupMember?
     fun existsByGroupIdAndUserIdAndStatus(groupId: UUID, userId: UUID, status: GroupMemberStatus): Boolean
 }

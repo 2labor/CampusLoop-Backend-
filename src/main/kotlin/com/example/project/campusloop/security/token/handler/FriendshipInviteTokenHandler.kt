@@ -2,7 +2,7 @@ package com.example.project.campusloop.security.token.handler
 
 import com.example.project.campusloop.domain.entity.Friendship
 import com.example.project.campusloop.domain.enum.TokenType
-import com.example.project.campusloop.security.domain.entity.Token
+import com.example.project.campusloop.security.domain.entity.ShareableToken
 import com.example.project.campusloop.security.token.service.ShareableTargetHandler
 import com.example.project.campusloop.security.token.service.ShareableTokenService
 import com.example.project.campusloop.service.FriendshipService
@@ -29,7 +29,7 @@ class FriendshipInviteTokenHandler(
         targetEntityId: String,
         durationInMinutes: Long,
         maxUses: Int?
-    ): Token {
+    ): ShareableToken {
         val userId = getId(targetEntityId)
 
         if (!userService.existById(userId)) {

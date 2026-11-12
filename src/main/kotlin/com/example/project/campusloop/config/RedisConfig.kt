@@ -1,6 +1,12 @@
 package com.example.project.campusloop.config
 
 import com.example.project.campusloop.infra.websocket.RedisWebSocketReceiver
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisConnectionFactory
@@ -21,6 +27,19 @@ class RedisConfig {
         return StringRedisSerializer()
     }
 
+    private fun jsonRedisSerializer(): GenericJackson2JsonRedisSerializer {
+        val objectMapper = ObjectMapper()
+            .registerKotlinModule()
+            .registerModule(JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.EVERYTHING,
+                JsonTypeInfo.As.PROPERTY
+            )
+
+        return GenericJackson2JsonRedisSerializer(objectMapper)
+    }
 
     @Bean
     fun redisTemplate(
@@ -31,7 +50,7 @@ class RedisConfig {
         template.connectionFactory = connectionFactory
         template.keySerializer = StringRedisSerializer()
 
-        val serializer = GenericJackson2JsonRedisSerializer()
+        val serializer = jsonRedisSerializer()
         template.valueSerializer = serializer
         template.hashValueSerializer = serializer
         template.hashKeySerializer = serializer
@@ -42,16 +61,14 @@ class RedisConfig {
     @Bean
     fun broadcastListenerAdapter(receiver: RedisWebSocketReceiver): MessageListenerAdapter {
         val adapter = MessageListenerAdapter(receiver, "handleBroadcast")
-        adapter.setSerializer(GenericJackson2JsonRedisSerializer())
-
+        adapter.setSerializer(jsonRedisSerializer())
         return adapter
     }
 
     @Bean
     fun userMessageListenerAdapter(receiver: RedisWebSocketReceiver): MessageListenerAdapter {
         val adapter = MessageListenerAdapter(receiver, "handleUserMessage")
-        adapter.setSerializer(GenericJackson2JsonRedisSerializer())
-
+        adapter.setSerializer(jsonRedisSerializer())
         return adapter
     }
 

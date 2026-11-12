@@ -31,7 +31,7 @@ class GroupMembersController (
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID,
     ): ResponseEntity<GroupMemberResponse> {
-        val membership = service.joinGroup(groupId, userId)
+        val membership = service.joinGroup(userId, groupId)
         return ResponseEntity.status(HttpStatus.CREATED).body(membership.toResponse())
     }
 
@@ -40,7 +40,7 @@ class GroupMembersController (
         @AuthenticationPrincipal userId: UUID,
         @PathVariable groupId: UUID,
     ): ResponseEntity<Void> {
-        service.leaveGroup(groupId, userId)
+        service.leaveGroup(userId, groupId)
         return ResponseEntity.noContent().build()
     }
 

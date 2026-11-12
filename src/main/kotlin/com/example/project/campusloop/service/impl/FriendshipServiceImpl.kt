@@ -181,7 +181,7 @@ class FriendshipServiceImpl (
             .orElseThrow { IllegalArgumentException("No user with id $targetId") }
 
         val request = repository.findBetweenUsers(currentUser, targetUser)
-            .orElseGet(null)
+            .orElse(null)
 
         if (request != null) {
             if (request.status == FriendshipStatus.BLOCKED) {

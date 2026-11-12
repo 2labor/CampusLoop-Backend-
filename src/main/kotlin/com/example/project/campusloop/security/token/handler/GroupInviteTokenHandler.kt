@@ -3,7 +3,7 @@ package com.example.project.campusloop.security.token.handler
 import com.example.project.campusloop.domain.entity.GroupMember
 import com.example.project.campusloop.domain.enum.GroupMemberRole
 import com.example.project.campusloop.domain.enum.TokenType
-import com.example.project.campusloop.security.domain.entity.Token
+import com.example.project.campusloop.security.domain.entity.ShareableToken
 import com.example.project.campusloop.security.token.service.ShareableTargetHandler
 import com.example.project.campusloop.security.token.service.ShareableTokenService
 import com.example.project.campusloop.service.GroupMemberService
@@ -29,7 +29,7 @@ class GroupInviteTokenHandler (
         targetEntityId: String,
         durationInMinutes: Long,
         maxUses: Int?
-    ): Token {
+    ): ShareableToken {
         val group = groupService.getGroupById(getId(targetEntityId))
         service.validateMemberRole(operatorId, group, GroupMemberRole.MODERATOR)
 

@@ -2,10 +2,13 @@ package com.example.project.campusloop.domain.dto
 
 import com.example.project.campusloop.domain.entity.Channel
 import com.example.project.campusloop.domain.enum.ChannelType
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 import java.time.Instant
 import java.util.UUID
 
 data class ChannelResponse(
+    @field:JsonSerialize(using = ToStringSerializer::class)
     val id: Long,
     val name: String?,
     val type: ChannelType,

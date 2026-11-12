@@ -161,8 +161,8 @@ class GroupMemberServiceImpl (
         val group = groupRepository.findByIdOrNull(groupId) ?:
             throw IllegalArgumentException("Group with id: ${groupId} not found")
         if (group.isPrivate) {
-            val requesterMembership = repository.findByIdOrNull(operatorId) ?:
-                throw  IllegalArgumentException("Group with id: ${operatorId} is private")
+            val requesterMembership = repository.findByGroupIdAndUserId(groupId,operatorId) ?:
+                throw  IllegalArgumentException("Group with id: ${groupId} is private")
             if (requesterMembership.status != GroupMemberStatus.ACTIVE) {
                 throw  IllegalArgumentException("You have to  be member of group: ${groupId}")
             }
