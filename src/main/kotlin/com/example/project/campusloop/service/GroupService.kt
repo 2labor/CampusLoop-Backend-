@@ -13,4 +13,5 @@ interface GroupService {
     fun searchGroup(query: String, pageable: Pageable): Slice<Group>
     fun updateGroup(operatorId: UUID, groupId: UUID, name: String?, description: String? = null, isPrivate: Boolean? = false): Group
     fun deleteGroup(operatorId: UUID, groupId: UUID)
+    fun existById(groupId: UUID): Boolean
 }

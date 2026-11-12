@@ -19,4 +19,7 @@ interface EventParticipantService {
         eventId: UUID,
         targetUserId: UUID,
         newStatus: ParticipantStatus)
+
+
+    fun addToEventParticipant(userId: UUID, eventId: UUID): EventParticipant
 }

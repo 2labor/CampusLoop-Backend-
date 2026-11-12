@@ -169,6 +169,10 @@ class EventServiceImpl (
         return repository.findAllByCreatorId(userId, pageable)
     }
 
+    override fun canAddToEvent(operatorId: UUID, event: Event): Boolean {
+        return operatorId == event.creator.id!!
+    }
+
     private fun validateCreator(userId: UUID, event: Event) {
         if (event.creator.id != userId) {
             throw IllegalArgumentException("Creator is different than user")

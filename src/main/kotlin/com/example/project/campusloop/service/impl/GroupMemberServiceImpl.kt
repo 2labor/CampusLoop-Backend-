@@ -72,12 +72,11 @@ class GroupMemberServiceImpl (
 
     @Transactional
     override fun addMember(
-        operatorId: UUID,
-        groupId: UUID,
-        targetId: UUID
+        targetId: UUID,
+        groupId: UUID
     ): GroupMember {
-        val user = userService.getUserById(operatorId) ?:
-        throw IllegalArgumentException("User with id $operatorId not found")
+        val user = userService.getUserById(targetId) ?:
+        throw IllegalArgumentException("User with id $targetId not found")
         val group = groupRepository.findById(groupId)
             .orElseThrow { IllegalArgumentException("Group with id $groupId not found") }
 
@@ -213,5 +212,10 @@ class GroupMemberServiceImpl (
 
     override fun isMemberActive(groupId: UUID, userId: UUID, status: GroupMemberStatus): Boolean {
         return repository.existsByGroupIdAndUserIdAndStatus(groupId, userId, status)
+    }
+
+    override fun getMemberByUserIdAndGroupId(groupId: UUID, userId: UUID): GroupMember {
+        return repository.findMemberByUserIdAndGroupId(groupId, userId)
+            ?: throw IllegalArgumentException("User with id: $userId not found")
     }
 }
