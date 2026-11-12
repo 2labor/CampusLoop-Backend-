@@ -7,7 +7,7 @@
 > **WebSocket STOMP 1.2 Broker:** `wss://campusloop-api.rohovskyi.dev/ws`  
 > **Cloudflare Account:** `hazekk94@gmail.com` (`hazed0m` / Account ID `05632480b64ab36d4abdf0dc3e82d0b1`)  
 > **D1 Database:** `campusloop-db` (`ab6fd3eb-fd74-458f-a3a1-f2f639272fb9`) | **KV:** `AUTH_KV` (`304fc37c083c4e58ae1137bcefaac2ac`)  
-> **Repository Commit:** `c82e7d4` (Location-Based Stories + MinIO S3 + Redis Geo + STOMP 1.2 + Edge D1)
+> **Repository Commit:** `54125d8` (Unified Attachments + Shareable Action Tokens + Location-Based Stories + MinIO S3 + Redis Geo + STOMP 1.2 + Edge D1)
 
 ---
 
@@ -21,7 +21,7 @@ Open your browser and navigate to either:
 **Features of the Web Tester:**
 * **1-Click Quick Login:** Switch instantly between student profiles (**Alex Mercer**, **Niamh Kelly**, **Liam O'Brien**) and college admins (**Ruslan / hazekk94**, **C24393471 Backend Lead**).
 * **Live STOMP 1.2 Monitor:** Live visual feed of incoming WebSocket frames (`/topic/events`, `/topic/channels/{id}/messages`, `/user/queue/geo/friends`, `/topic/stories`).
-* **Interactive Endpoint Cards:** Test all 19 controllers with pre-filled defaults, path variable inputs, and response syntax highlighting.
+* **Interactive Endpoint Cards:** Test all 20 controllers with pre-filled defaults, path variable inputs, and response syntax highlighting.
 * **1-Click Copy cURL:** Generates terminal-ready `curl` commands with your active Bearer token.
 
 ---
@@ -179,15 +179,24 @@ curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/groups/22222222-2222-2
 curl -H "Authorization: Bearer <TOKEN>" "https://campusloop-api.rohovskyi.dev/api/v1/groups/11111111-1111-1111-1111-111111111111/posts"
 ```
 
-#### `POST /api/v1/groups/{groupId}/posts` (Supports `isAnonymous`)
+#### `POST /api/v1/groups/{groupId}/posts` (Supports `isAnonymous` & Unified `attachments`)
 ```bash
 curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/groups/11111111-1111-1111-1111-111111111111/posts" \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Anonymous question about exams",
-    "content": "Does anyone have past papers for Advanced Algorithms?",
-    "isAnonymous": true
+    "title": "Study Notes with Attachments",
+    "content": "Check out the week 1 algorithms lecture slides attached below!",
+    "isAnonymous": false,
+    "attachments": [
+      {
+        "originalName": "week1_algorithms.pdf",
+        "fileKey": "posts/week1_algorithms.pdf",
+        "fileType": "DOCUMENT",
+        "mimeType": "application/pdf",
+        "fileSize": 1048576
+      }
+    ]
   }'
 ```
 
@@ -242,14 +251,23 @@ curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/channels/direct?userId
   -H "Authorization: Bearer <TOKEN>"
 ```
 
-#### `POST /api/v1/channels/{channelId}/messages` (Broadcasts STOMP `/topic/channels/{id}/messages`)
+#### `POST /api/v1/channels/{channelId}/messages` (Broadcasts STOMP `/topic/channels/{id}/messages` & Supports `attachments`)
 ```bash
 curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/channels/1001/messages" \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
-    "content": "Hey everyone, STOMP real-time messaging is live!",
-    "parentMessageId": null
+    "content": "Hey everyone, STOMP real-time messaging with attachments is live!",
+    "parentMessageId": null,
+    "attachments": [
+      {
+        "originalName": "campus_photo.jpg",
+        "fileKey": "chat/campus_photo.jpg",
+        "fileType": "PHOTO",
+        "mimeType": "image/jpeg",
+        "fileSize": 524288
+      }
+    ]
   }'
 ```
 
@@ -369,6 +387,50 @@ curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/admin/ai/config" \
     "promoActive": true,
     "prompt": "Promote coffee runs and collaborative coding."
   }'
+```
+
+---
+
+### 3.12 Shareable Action Tokens (`/api/v1/tokens`) *(New from `54125d8`)*
+Secure, short-lived, rate-limited tokens for QR codes, deep links, group invitations, direct friendship connections, and event RSVPs. Enforces RBAC permissions on token generation and auto-executes the target action upon consumption.
+
+#### `POST /api/v1/tokens/generate`
+Generates a token with an expiration (`durationInMinutes`) and optional usage cap (`maxUses`).
+* **Supported `type`s:** `JOIN_GROUP`, `ADD_FRIEND`, `JOIN_EVENT`.
+* **RBAC Rules:**
+  * `JOIN_GROUP`: Creator must be group `ADMIN` or `MODERATOR`.
+  * `ADD_FRIEND`: `targetEntityId` must match the caller's own User ID.
+  * `JOIN_EVENT`: Caller must have permission to invite to the event.
+
+```bash
+curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/tokens/generate" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "JOIN_GROUP",
+    "targetEntityId": "11111111-1111-1111-1111-111111111111",
+    "durationInMinutes": 1440,
+    "maxUses": 10
+  }'
+
+# Response (201 Created):
+# {"token":"ACT_5A6BE9F9EB8A41F6","type":"JOIN_GROUP","targetEntityId":"11111111-1111-1111-1111-111111111111","expiresAt":"2026-11-13T13:50:17.884Z","maxUses":10}
+```
+
+#### `POST /api/v1/tokens/consume`
+Consumes an action token, validates expiration and usage limits, automatically executes the action (adds group member, creates accepted friendship, or RSVPs to event), and increments `uses_count`. Returns `204 No Content`.
+
+```bash
+curl -i -X POST "https://campusloop-api.rohovskyi.dev/api/v1/tokens/consume" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "ACT_5A6BE9F9EB8A41F6",
+    "type": "JOIN_GROUP"
+  }'
+
+# Response:
+# HTTP/1.1 204 No Content
 ```
 
 ---

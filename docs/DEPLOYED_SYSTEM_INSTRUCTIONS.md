@@ -1,6 +1,6 @@
 # CampusLoop — Deployed Backend & Frontend Usage Instructions
 
-> **Document Version:** 1.0 (Commit `c82e7d4` / Controller 19 + Edge D1 + STOMP 1.2)  
+> **Document Version:** 1.1 (Commit `54125d8` / Controller 20 + Unified Attachments + Shareable Tokens + Edge D1 + STOMP 1.2)  
 > **Backend Custom Domain:** [`https://campusloop-api.rohovskyi.dev`](https://campusloop-api.rohovskyi.dev)  
 > **Workers.dev Fallback:** [`https://campusloop-backend.hazekk94.workers.dev`](https://campusloop-backend.hazekk94.workers.dev)  
 > **Interactive API Tester Web App:** [`https://campusloop-api.rohovskyi.dev/debug`](https://campusloop-api.rohovskyi.dev/debug)  
@@ -19,8 +19,8 @@ flowchart TD
     Client["📱 Android App (CampusMates) & 💻 Web Frontends (/app, /debug)"]
 
     subgraph Edge["☁️ Cloudflare Edge (24/7 Always-On)"]
-        Worker["Cloudflare Worker (campusloop-backend)\n19 Controllers · STOMP 1.2 Broker (/ws)"]
-        D1[("D1 SQLite Database (campusloop-db)\n15 Normalized Relational Tables")]
+        Worker["Cloudflare Worker (campusloop-backend)\n20 Controllers · STOMP 1.2 Broker (/ws)"]
+        D1[("D1 SQLite Database (campusloop-db)\n17 Normalized Relational Tables")]
         KV[("AUTH_KV Namespace")]
     end
 
@@ -40,7 +40,7 @@ flowchart TD
     Boot <--> MinIO
 ```
 
-* **Cloudflare Edge Deployment:** A 24/7 serverless deployment hosting all **19 REST controllers**, a native **STOMP 1.2 WebSocket engine**, **Cloudflare D1 relational database**, and **AUTH_KV**. The Android app and web apps work out-of-the-box against this cloud environment with zero local setup required.
+* **Cloudflare Edge Deployment:** A 24/7 serverless deployment hosting all **20 REST controllers**, a native **STOMP 1.2 WebSocket engine**, **Cloudflare D1 relational database**, and **AUTH_KV**. The Android app and web apps work out-of-the-box against this cloud environment with zero local setup required.
 * **Spring Boot Companion Backend:** A Kotlin 1.9 + Spring Boot 3.2.5 JVM service with PostgreSQL, Redis Geo, and MinIO S3 object storage for local testing and containerized workloads.
 
 ---
@@ -242,15 +242,54 @@ curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/groups/11111111-1111-1
   }'
 ```
 
-#### 8. Send a Real-Time Channel Message
+#### 8. Send a Real-Time Channel Message (Supports Attachments)
 ```bash
 curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/channels/1001/messages" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "content": "Meeting up at the atrium in 10 minutes!",
-    "parentMessageId": null
+    "parentMessageId": null,
+    "attachments": [
+      {
+        "originalName": "atrium_spot.jpg",
+        "fileKey": "chat/atrium_spot.jpg",
+        "fileType": "PHOTO",
+        "mimeType": "image/jpeg",
+        "fileSize": 524288
+      }
+    ]
   }'
+```
+
+#### 9. Generate a Shareable Action Token (Group Invite, Friendship, Event RSVP)
+```bash
+curl -X POST "https://campusloop-api.rohovskyi.dev/api/v1/tokens/generate" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "JOIN_GROUP",
+    "targetEntityId": "11111111-1111-1111-1111-111111111111",
+    "durationInMinutes": 1440,
+    "maxUses": 10
+  }'
+
+# Returns:
+# {"token":"ACT_5A6BE9F9EB8A41F6","type":"JOIN_GROUP","targetEntityId":"11111111-1111-1111-1111-111111111111","expiresAt":"2026-11-13T13:50:17.884Z","maxUses":10}
+```
+
+#### 10. Consume a Shareable Action Token
+```bash
+curl -i -X POST "https://campusloop-api.rohovskyi.dev/api/v1/tokens/consume" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "ACT_5A6BE9F9EB8A41F6",
+    "type": "JOIN_GROUP"
+  }'
+
+# Returns:
+# HTTP/1.1 204 No Content
 ```
 
 ---

@@ -380,7 +380,7 @@
     <div class="brand">
       <span class="brand-title">CampusLoop</span>
       <span class="pill pill-green">API Explorer & Debugger</span>
-      <span class="pill pill-blue">19 Controllers</span>
+      <span class="pill pill-blue">20 Controllers</span>
       <span class="pill pill-orange">Edge D1 + STOMP 1.2</span>
     </div>
     <div class="control-group">
@@ -438,6 +438,7 @@
     <div class="nav-item" onclick="filterCategory('STORIES')"><span>📸 Stories (Location)</span><span class="nav-badge">5</span></div>
     <div class="nav-item" onclick="filterCategory('STORAGE')"><span>📦 Storage (S3/MinIO)</span><span class="nav-badge">4</span></div>
     <div class="nav-item" onclick="filterCategory('AI')"><span>🤖 AI & Promo Codes</span><span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="filterCategory('TOKENS')"><span>🎟️ Shareable Tokens</span><span class="nav-badge">2</span></div>
   </aside>
 
   <!-- Main Content -->
@@ -480,7 +481,7 @@
   let activeSearch = "";
   let stompWs = null;
 
-  // Endpoint Definitions (Covering all 19 controllers)
+  // Endpoint Definitions (Covering all 20 controllers)
   const ENDPOINTS = [
     // 1. Health
     {
@@ -717,14 +718,23 @@
       category: "POSTS",
       method: "POST",
       path: "/api/v1/groups/{groupId}/posts",
-      title: "Publish Discussion Post (Supports Anonymous Masking)",
+      title: "Publish Discussion Post (Supports Anonymous Masking & Attachments)",
       params: [
         { name: "groupId", default: "11111111-1111-1111-1111-111111111111", in: "path" }
       ],
       body: {
         title: "Testing Anonymous Masking via Debugger",
         content: "Will this show up as Anonymous Student or my real name?",
-        isAnonymous: true
+        isAnonymous: true,
+        attachments: [
+          {
+            originalName: "cs_notes.pdf",
+            fileKey: "posts/cs_notes_week1.pdf",
+            fileType: "DOCUMENT",
+            mimeType: "application/pdf",
+            fileSize: 1048576
+          }
+        ]
       },
       auth: true
     },
@@ -971,13 +981,22 @@
       category: "CHANNELS",
       method: "POST",
       path: "/api/v1/channels/{channelId}/messages",
-      title: "Send Real-Time Message (Broadcasts STOMP)",
+      title: "Send Real-Time Message (Broadcasts STOMP & Attachments)",
       params: [
         { name: "channelId", default: "1001", in: "path" }
       ],
       body: {
         content: "Hello from the CampusLoop API Debugger! 🚀",
-        parentMessageId: null
+        parentMessageId: null,
+        attachments: [
+          {
+            originalName: "project_diagram.png",
+            fileKey: "chat/diagram_east_quad.png",
+            fileType: "PHOTO",
+            mimeType: "image/png",
+            fileSize: 524288
+          }
+        ]
       },
       auth: true
     },
@@ -1196,6 +1215,34 @@
         title: "30% off pour-overs at East Quad Cafe",
         discountPercent: 30,
         expiresAt: new Date(Date.now() + 86400000 * 7).toISOString()
+      },
+      auth: true
+    },
+
+    // 14. Shareable Tokens (Controller 20)
+    {
+      category: "TOKENS",
+      method: "POST",
+      path: "/api/v1/tokens/generate",
+      title: "Generate Action Token (Group Invite, Friendship, Event RSVP)",
+      params: [],
+      body: {
+        type: "JOIN_GROUP",
+        targetEntityId: "11111111-1111-1111-1111-111111111111",
+        durationInMinutes: 1440,
+        maxUses: 10
+      },
+      auth: true
+    },
+    {
+      category: "TOKENS",
+      method: "POST",
+      path: "/api/v1/tokens/consume",
+      title: "Consume Action Token (Auto-executes Action with RBAC Checks)",
+      params: [],
+      body: {
+        token: "PASTE_TOKEN_HERE",
+        type: "JOIN_GROUP"
       },
       auth: true
     }

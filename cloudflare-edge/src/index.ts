@@ -344,7 +344,8 @@ export default {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
-    const url = new URL(req.url);
+    try {
+      const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const method = req.method.toUpperCase();
     const now = new Date().toISOString();
@@ -363,8 +364,8 @@ export default {
       return jsonResponse({
         service: "CampusLoop-Backend (Cloudflare Edge + D1)",
         account: "hazed0m (hazekk94@gmail.com)",
-        commit: "c82e7d4 (Stories + MinIO + STOMP + D1)",
-        controllers: 19,
+        commit: "54125d8 (Unified Attachments + Shareable Tokens + Stories)",
+        controllers: 20,
         websocket: "/ws (STOMP 1.2)",
         webApp: "https://campusloop-api.rohovskyi.dev/app",
         apiTester: "https://campusloop-api.rohovskyi.dev/debug",
@@ -896,9 +897,14 @@ export default {
         )
           .bind(groupId, groupId)
           .all<Record<string, unknown>>();
-        return jsonResponse(
-          sliceResponse(
-            (rows.results || []).map((p) => ({
+
+        const postList = rows.results || [];
+        const enriched = await Promise.all(
+          postList.map(async (p) => {
+            const atts = await env.DB.prepare(`SELECT * FROM attachments WHERE post_id = ?`)
+              .bind(p.id)
+              .all<Record<string, unknown>>();
+            return {
               id: p.id,
               groupId: p.group_id,
               authorId: p.is_anonymous ? null : p.author_id,
@@ -906,14 +912,35 @@ export default {
               title: p.title,
               content: p.content,
               isAnonymous: Boolean(p.is_anonymous),
+              attachments: (atts.results || []).map((a) => ({
+                id: a.id,
+                fileSize: Number(a.file_size),
+                originalName: a.original_name,
+                mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(String(a.file_key))}`,
+                mimeType: a.mime_type,
+                type: a.file_type,
+                createdAt: a.created_at,
+              })),
               createdAt: p.created_at,
               updatedAt: p.updated_at,
-            }))
-          )
+            };
+          })
         );
+        return jsonResponse(sliceResponse(enriched));
       }
       if (method === "POST") {
-        const body = (await req.json()) as { title?: string; content: string; isAnonymous?: boolean };
+        const body = (await req.json()) as {
+          title?: string;
+          content: string;
+          isAnonymous?: boolean;
+          attachments?: Array<{
+            fileSize: number;
+            originalName: string;
+            fileType: string;
+            fileKey: string;
+            mimeType: string;
+          }>;
+        };
         const id = crypto.randomUUID();
         const isAnon = body.isAnonymous ? 1 : 0;
         const authorName = isAnon ? "Anonymous Student" : authUser.username;
@@ -923,6 +950,27 @@ export default {
         )
           .bind(id, groupId, authUser.sub, authorName, body.title || "Campus Discussion", body.content, isAnon, now, now)
           .run();
+
+        const attachmentsResp = [];
+        if (body.attachments && Array.isArray(body.attachments)) {
+          for (const att of body.attachments) {
+            const attId = crypto.randomUUID();
+            await env.DB.prepare(
+              `INSERT INTO attachments (id, file_size, original_name, file_key, file_type, mime_type, post_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(attId, att.fileSize, att.originalName, att.fileKey, att.fileType, att.mimeType, id, now).run();
+            attachmentsResp.push({
+              id: attId,
+              fileSize: att.fileSize,
+              originalName: att.originalName,
+              mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(att.fileKey)}`,
+              mimeType: att.mimeType,
+              type: att.fileType,
+              createdAt: now,
+            });
+          }
+        }
+
         return jsonResponse(
           {
             id,
@@ -932,6 +980,7 @@ export default {
             title: body.title || "Campus Discussion",
             content: body.content,
             isAnonymous: Boolean(isAnon),
+            attachments: attachmentsResp,
             createdAt: now,
             updatedAt: now,
           },
@@ -1203,19 +1252,44 @@ export default {
         )
           .bind(channelId)
           .all<Record<string, unknown>>();
-        return jsonResponse(
-          sliceResponse(
-            (rows.results || []).map((m) => ({
+
+        const msgList = rows.results || [];
+        const enriched = await Promise.all(
+          msgList.map(async (m) => {
+            const atts = await env.DB.prepare(`SELECT * FROM attachments WHERE message_id = ?`)
+              .bind(Number(m.id))
+              .all<Record<string, unknown>>();
+            return {
               id: Number(m.id),
               content: m.content,
               senderName: m.sender_name,
+              attachments: (atts.results || []).map((a) => ({
+                id: a.id,
+                fileSize: Number(a.file_size),
+                originalName: a.original_name,
+                mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(String(a.file_key))}`,
+                mimeType: a.mime_type,
+                type: a.file_type,
+                createdAt: a.created_at,
+              })),
               createdAt: m.created_at,
-            }))
-          )
+            };
+          })
         );
+        return jsonResponse(sliceResponse(enriched));
       }
       if (method === "POST") {
-        const body = (await req.json()) as { content: string; parentMessageId?: number | null };
+        const body = (await req.json()) as {
+          content: string;
+          parentMessageId?: number | null;
+          attachments?: Array<{
+            fileSize: number;
+            originalName: string;
+            fileType: string;
+            fileKey: string;
+            mimeType: string;
+          }>;
+        };
         const id = Date.now();
         let parentContent: string | null = null;
         if (body.parentMessageId) {
@@ -1230,12 +1304,34 @@ export default {
         )
           .bind(id, channelId, authUser.sub, authUser.username, body.content, body.parentMessageId ?? null, parentContent, now, now)
           .run();
+
+        const attachmentsResp = [];
+        if (body.attachments && Array.isArray(body.attachments)) {
+          for (const att of body.attachments) {
+            const attId = crypto.randomUUID();
+            await env.DB.prepare(
+              `INSERT INTO attachments (id, file_size, original_name, file_key, file_type, mime_type, message_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(attId, att.fileSize, att.originalName, att.fileKey, att.fileType, att.mimeType, id, now).run();
+            attachmentsResp.push({
+              id: attId,
+              fileSize: att.fileSize,
+              originalName: att.originalName,
+              mediaUrl: `${env.PUBLIC_URL || url.origin}/api/v1/storage/object/${encodeURIComponent(att.fileKey)}`,
+              mimeType: att.mimeType,
+              type: att.fileType,
+              createdAt: now,
+            });
+          }
+        }
+
         const msgResp = {
           id,
           content: body.content,
           senderName: authUser.username,
           channelId,
           parentContent,
+          attachments: attachmentsResp,
           createdAt: now,
           updatedAt: now,
         };
@@ -1475,6 +1571,113 @@ export default {
       return emptyResponse(204);
     }
 
+    // 20. ShareableTokenController (/api/v1/tokens) - RBAC Shareable Action Tokens
+    if (path === "/api/v1/tokens/generate" && method === "POST") {
+      const body = (await req.json()) as {
+        type: string;
+        targetEntityId: string;
+        durationInMinutes?: number;
+        maxUses?: number | null;
+      };
+      if (!body.type || !body.targetEntityId) {
+        return jsonResponse({ message: "type and targetEntityId are required" }, 400);
+      }
+
+      // RBAC validation:
+      if (body.type === "ADD_FRIEND" && body.targetEntityId !== authUser.sub) {
+        return jsonResponse({ message: "You cannot create token for user id different with yours" }, 400);
+      }
+      if (body.type === "JOIN_GROUP") {
+        const mem = await env.DB.prepare(
+          `SELECT role FROM group_members WHERE group_id = ? AND user_id = ?`
+        ).bind(body.targetEntityId, authUser.sub).first<{ role: string }>();
+        if (!mem || (mem.role !== "ADMIN" && mem.role !== "MODERATOR")) {
+          const grp = await env.DB.prepare(`SELECT creator_id FROM groups_table WHERE id = ?`)
+            .bind(body.targetEntityId).first<{ creator_id: string }>();
+          if (!grp || grp.creator_id !== authUser.sub) {
+            return jsonResponse({ message: "Caller must have MODERATOR or ADMIN role in group" }, 403);
+          }
+        }
+      }
+
+      const durationMinutes = body.durationInMinutes || 1440;
+      const expiresAt = new Date(Date.now() + durationMinutes * 60000).toISOString();
+      const token = "ACT_" + crypto.randomUUID().replace(/-/g, "").substring(0, 16).toUpperCase();
+
+      await env.DB.prepare(
+        `INSERT INTO shareable_tokens (token, type, target_entity_id, creator_id, expires_at, max_uses, uses_count, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?)`
+      )
+        .bind(token, body.type, body.targetEntityId, authUser.sub, expiresAt, body.maxUses ?? null, now)
+        .run();
+
+      return jsonResponse(
+        {
+          token,
+          type: body.type,
+          targetEntityId: body.targetEntityId,
+          expiresAt,
+          maxUses: body.maxUses ?? null,
+        },
+        201
+      );
+    }
+
+    if (path === "/api/v1/tokens/consume" && method === "POST") {
+      try {
+        const body = (await req.json()) as { token: string; type: string };
+        if (!body.token || !body.type) {
+          return jsonResponse({ message: "token and type are required" }, 400);
+        }
+
+        const tok = await env.DB.prepare(
+          `SELECT * FROM shareable_tokens WHERE token = ? AND type = ?`
+        ).bind(body.token, body.type).first<Record<string, unknown>>();
+
+        if (!tok) {
+          return jsonResponse({ message: "Invalid token or type mismatch" }, 404);
+        }
+        if (String(tok.expires_at) < now) {
+          return jsonResponse({ message: "Token has expired" }, 410);
+        }
+        if (tok.max_uses !== null && Number(tok.uses_count) >= Number(tok.max_uses)) {
+          return jsonResponse({ message: "Token has reached maximum usage limit" }, 410);
+        }
+
+        const targetId = String(tok.target_entity_id);
+        const creatorId = String(tok.creator_id);
+
+        // Process token based on type:
+        if (body.type === "JOIN_GROUP") {
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO group_members (id, group_id, user_id, role, created_at) VALUES (?, ?, ?, 'MEMBER', ?)`
+          ).bind(crypto.randomUUID(), targetId, authUser.sub, now).run();
+        } else if (body.type === "ADD_FRIEND") {
+          await env.DB.prepare(
+            `INSERT OR REPLACE INTO friendships (id, initializer_id, target_id, status, created_at, updated_at) VALUES (?, ?, ?, 'ACCEPTED', ?, ?)`
+          ).bind(crypto.randomUUID(), creatorId, authUser.sub, now, now).run();
+        } else if (body.type === "JOIN_EVENT") {
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO event_participants (id, event_id, user_id, username, status, created_at) VALUES (?, ?, ?, ?, 'APPROVED', ?)`
+          ).bind(crypto.randomUUID(), targetId, authUser.sub, authUser.username || "student", now).run();
+        }
+
+        await env.DB.prepare(
+          `UPDATE shareable_tokens SET uses_count = uses_count + 1 WHERE token = ?`
+        ).bind(body.token).run();
+
+        return emptyResponse(204);
+      } catch (err: unknown) {
+        return jsonResponse({ error: String((err as Error)?.message || err), stack: String((err as Error)?.stack || "") }, 500);
+      }
+    }
+
     return jsonResponse({ message: `Endpoint ${method} ${path} not found` }, 404);
+    } catch (err: unknown) {
+      return jsonResponse({
+        error: String((err as Error)?.message || err),
+        stack: String((err as Error)?.stack || "")
+      }, 500);
+    }
   },
 };

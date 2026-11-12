@@ -172,6 +172,29 @@ CREATE TABLE IF NOT EXISTS stories (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS attachments (
+    id TEXT PRIMARY KEY,
+    file_size INTEGER NOT NULL,
+    original_name TEXT NOT NULL,
+    file_key TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    message_id INTEGER,
+    post_id TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS shareable_tokens (
+    token TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    target_entity_id TEXT NOT NULL,
+    creator_id TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    max_uses INTEGER,
+    uses_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
 -- Seed initial data (Users, Groups, Posts, Comments, Events, Channels, Messages)
 INSERT OR IGNORE INTO users (id, email, username, login, password_hash, first_name, last_name, bio, course, academic_year, campus_zone, activity_status, created_at, updated_at)
 VALUES
