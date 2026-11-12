@@ -19,4 +19,6 @@ interface EventService {
 
     fun getUpcomingEvents(category: EventCategory?, pageable: Pageable): Slice<Event>
     fun getMyCreatedEvents(userId: UUID, pageable: Pageable): Slice<Event>
+
+    fun canAddToEvent(operatorId: UUID, event: Event): Boolean
 }

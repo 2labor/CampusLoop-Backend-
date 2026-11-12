@@ -100,4 +100,8 @@ class GroupServiceImpl (
 
         repository.delete(group)
     }
+
+    override fun existById(groupId: UUID): Boolean {
+        return repository.existsById(groupId)
+    }
 }

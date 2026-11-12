@@ -5,5 +5,6 @@ import java.util.UUID
 data class CreatePostCommand(
     val content: String,
     val title: String? = null,
-    val isAnonymous:Boolean = true
+    val isAnonymous:Boolean = true,
+    val attachments: List<CreateAttachmentCommand> = emptyList(),
 )

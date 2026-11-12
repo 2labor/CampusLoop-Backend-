@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.UUID
 
 @Service
@@ -116,9 +117,13 @@ class EventParticipantServiceImpl (
         if (newStatus == ParticipantStatus.APPROVED && participant.status != ParticipantStatus.APPROVED) {
             if (event.maxParticipants != null) {
                 val currentApprovedCount = repository.countByEventIdAndStatus(eventId, ParticipantStatus.APPROVED)
-                if (currentApprovedCount >= event.maxParticipants!!) {
+                if (currentApprovedCount <= event.maxParticipants!!) {
                     throw IllegalStateException("Event has reached its maximum participant limit")
                 }
+            }
+
+            if (event.startTime.isBefore(Instant.now())) {
+                throw IllegalStateException("Event has reached its start time")
             }
         }
 
@@ -126,6 +131,36 @@ class EventParticipantServiceImpl (
         val saved = repository.save(participant)
 
         dispatchService.notifyParticipantStatusUpdated(eventId, saved)
+    }
+
+    @Transactional
+    override fun addToEventParticipant(
+        userId: UUID,
+        eventId: UUID
+    ): EventParticipant {
+        val user = userService.getUserById(userId)
+            ?: throw IllegalArgumentException("User with id $userId not found")
+        val event = eventService.getEventDetails(eventId)
+
+        if (repository.existsByEventIdAndUserId(eventId, userId)) {
+            throw IllegalArgumentException("User is already a participant or has a pending request")
+        }
+
+        if (
+            event.eventStatus != EventStatus.UPCOMING
+            || event.startTime.isBefore(Instant.now())
+            || event.maxParticipants != null && event.maxParticipants!! <= repository.countByEventIdAndStatus(eventId, ParticipantStatus.APPROVED)
+            ) {
+            throw IllegalArgumentException("Event has reached its maximum participant limit or its not available anymore")
+        }
+
+        val participant = EventParticipant(
+            event = event,
+            user = user,
+            status = ParticipantStatus.APPROVED
+        )
+
+        return repository.save(participant)
     }
 
     private fun findParticipant(eventId: UUID, userId: UUID): EventParticipant {

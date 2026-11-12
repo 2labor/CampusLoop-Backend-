@@ -10,6 +10,7 @@ data class PostResponse(
     val content: String,
     val groupId: UUID,
     val isAnonymous: Boolean,
+    val attachments: List<AttachmentResponse> = emptyList(),
     val author: AuthorDto?,
     val createdAt: Instant,
     val updatedAt: Instant

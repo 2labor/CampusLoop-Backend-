@@ -1,14 +1,13 @@
 package com.example.project.campusloop.security.token.service.impl
 
 import com.example.project.campusloop.domain.enum.TokenType
-import com.example.project.campusloop.security.token.Token
+import com.example.project.campusloop.security.domain.entity.Token
 import com.example.project.campusloop.security.token.service.TokenService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.time.Instant
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @Service
@@ -31,7 +30,7 @@ class RedisTokenServiceImpl (
         tokenStr: String,
         tokenType: TokenType,
         durationMinutes: Long,
-        targetEntityId: UUID?,
+        targetEntityId: String?,
         maxUses: Int?
     ): Token {
 

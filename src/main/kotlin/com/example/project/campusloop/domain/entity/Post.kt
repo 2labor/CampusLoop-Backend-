@@ -1,5 +1,6 @@
 package com.example.project.campusloop.domain.entity
 
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -8,6 +9,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.Instant
@@ -37,6 +39,9 @@ class Post (
     @Column(name = "is_anonymous", nullable = false)
     var isAnonymous: Boolean = true,
 
+    @OneToMany(mappedBy = "post", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val attachments: MutableList<Attachment> = mutableListOf(),
+
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 
@@ -46,5 +51,10 @@ class Post (
     @PreUpdate
     fun onUpdate() {
         updatedAt = Instant.now()
+    }
+
+    fun addAttachment(attachment: Attachment) {
+        attachments.add(attachment)
+        attachment.post = this
     }
 }

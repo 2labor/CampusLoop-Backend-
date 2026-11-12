@@ -11,7 +11,7 @@ import java.util.UUID
 interface GroupMemberService {
     fun joinGroup(operatorId: UUID, groupId: UUID): GroupMember
     fun leaveGroup(operatorId: UUID, groupId: UUID)
-    fun addMember(operatorId: UUID, groupId: UUID, targetId: UUID): GroupMember
+    fun addMember(targetId: UUID, groupId: UUID): GroupMember
     fun addToGroup(groupId: UUID, member: GroupMember)
     fun updateMemberRole(operatorId: UUID, groupId: UUID, targetId: UUID, newRole: GroupMemberRole): GroupMember
     fun updateMemberStatus(operatorId: UUID, groupId: UUID, targetId: UUID, newStatus: GroupMemberStatus): GroupMember
@@ -19,4 +19,5 @@ interface GroupMemberService {
     fun getMemberCount(groupId: UUID): Long
     fun validateMemberRole(userId: UUID, group: Group, requiredRole: GroupMemberRole)
     fun isMemberActive(groupId: UUID, userId: UUID, status: GroupMemberStatus): Boolean
+    fun getMemberByUserIdAndGroupId(groupId: UUID, userId: UUID): GroupMember
 }
