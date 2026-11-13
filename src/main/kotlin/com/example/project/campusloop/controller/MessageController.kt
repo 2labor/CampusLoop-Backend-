@@ -1,6 +1,7 @@
 package com.example.project.campusloop.controller
 
 import com.example.project.campusloop.domain.dto.LastMessageResponse
+import com.example.project.campusloop.domain.dto.Message
 import com.example.project.campusloop.domain.dto.MessageResponse
 import com.example.project.campusloop.domain.enum.HistoryDirection
 import com.example.project.campusloop.domain.mapper.MessageMapper
@@ -104,7 +105,7 @@ class MessageController (
         @RequestParam(required = false) cursorId: Long?,
         @RequestParam(defaultValue = "BEFORE") direction: HistoryDirection,
         pageable: Pageable
-    ): ResponseEntity<Slice<LastMessageResponse>> {
+    ): ResponseEntity<Slice<MessageResponse>> {
         val messages = service.getChannelHistory(
             operatorId = userId,
             channelId = channelId,
@@ -112,6 +113,6 @@ class MessageController (
             direction = direction,
             pageable = pageable
         )
-        return ResponseEntity.ok(messages.map { mapper.toLastMessageResponse(it) })
+        return ResponseEntity.ok(messages.map { mapper.toResponse(it) })
     }
 }
