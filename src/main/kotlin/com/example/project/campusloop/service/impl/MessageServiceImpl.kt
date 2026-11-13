@@ -71,7 +71,7 @@ class MessageServiceImpl (
         if (command.attachments.isNotEmpty()) {
             command.attachments.forEach { attComm ->
                 val attachment = attachmentService.createAttachment(attComm)
-                message.attachments.add(attachment)
+                message.addAttachment(attachment)
             }
         }
 

@@ -55,7 +55,7 @@ class PostServiceImpl (
         if (command.attachments.isNotEmpty()) {
            command.attachments.forEach { attComm ->
                val attachment = attachmentService.createAttachment(attComm)
-               post.attachments.add(attachment)
+               post.addAttachment(attachment)
            }
         }
 
