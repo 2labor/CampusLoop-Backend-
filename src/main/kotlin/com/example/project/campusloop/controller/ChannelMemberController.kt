@@ -55,6 +55,16 @@ class ChannelMemberController (
         return ResponseEntity.ok(members.map { ChannelMemberResponse.from(it) })
     }
 
+    @PostMapping("/{channelId}/read")
+    fun markRead(
+        @AuthenticationPrincipal operatorId: UUID,
+        @PathVariable channelId: Long,
+        @RequestParam messageId: Long
+    ): ResponseEntity<Void> {
+        service.markRead(channelId, operatorId, messageId)
+        return ResponseEntity.noContent().build()
+    }
+
     @GetMapping("/me")
     fun getMyChannels(
         @AuthenticationPrincipal operatorId: UUID,

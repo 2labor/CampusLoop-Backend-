@@ -76,10 +76,28 @@ class MessageServiceImpl (
         }
 
         val saved = repository.save(message)
+        repository.flush()
+
+        val directMessageRecipients = if (channel.type == ChannelType.DIRECT) {
+            memberService.getMembersByChannelIds(listOf(channelId))
+                .mapNotNull { it.user.id }
+                .filterNot { it == authorId }
+        } else {
+            emptyList()
+        }
 
         dispatchService.notifyMessageCreated(
             channelId = channelId,
-            message = saved
+            message = saved,
+            recipientUserIds = directMessageRecipients
+        )
+
+        channelService.onNewMessage(
+            channelId = channelId,
+            messageId = saved.id!!,
+            senderId = authorId,
+            rawContent = saved.content,
+            createdAt = saved.createdAt,
         )
 
         return saved
@@ -144,10 +162,16 @@ class MessageServiceImpl (
         }
 
         repository.delete(message)
+        repository.flush()
 
         dispatchService.notifyMessageDeleted(
             channelId = message.channel.id!!,
             messageId = messageId
+        )
+
+        channelService.onMessageDelete(
+            channelId = message.channel.id!!,
+            deletedMessageId = messageId
         )
     }
 

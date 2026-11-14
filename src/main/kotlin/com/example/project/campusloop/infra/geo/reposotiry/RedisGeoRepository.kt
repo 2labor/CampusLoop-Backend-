@@ -27,7 +27,7 @@ class RedisGeoRepository (
 
         redisTemplate.opsForGeo().add(
             GEO_KEY,
-            Point(latitude, longitude),
+            Point(longitude, latitude),
             memberName
         )
 

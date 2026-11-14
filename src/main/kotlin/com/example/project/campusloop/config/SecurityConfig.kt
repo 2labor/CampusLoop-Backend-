@@ -50,6 +50,7 @@ class SecurityConfig(
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/api/v1/auth/password/change-password").authenticated()
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             }
             .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter::class.java)

@@ -13,4 +13,7 @@ interface ChannelMemberService {
     fun getUsersChannels(operatorId: UUID, pageable: Pageable): Slice<Channel>
     fun getOrCreateDirectChannel(operatorId: UUID, recipientId: UUID): Channel
     fun isMember(channel: Channel, userId: UUID): Boolean
+    fun getMembersByChannelIds(channelIds: List<Long>): List<ChannelMember>
+    fun updateLastReadMessage(channelId: Long, userId: UUID, messageId: Long)
+    fun markRead(channelId: Long, userId: UUID, messageId: Long)
 }

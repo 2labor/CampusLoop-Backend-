@@ -6,6 +6,7 @@ import com.example.project.campusloop.domain.enum.ChannelType
 import com.example.project.campusloop.domain.enum.GroupMemberRole
 import com.example.project.campusloop.repository.ChannelMemberRepository
 import com.example.project.campusloop.repository.ChannelRepository
+import com.example.project.campusloop.repository.MessageRepository
 import com.example.project.campusloop.service.ChannelMemberService
 import com.example.project.campusloop.service.ChannelService
 import com.example.project.campusloop.service.GroupMemberService
@@ -22,6 +23,7 @@ import java.util.UUID
 class ChannelMemberServiceImpl (
     private val repository: ChannelMemberRepository,
     private val channelRepository: ChannelRepository,
+    private val messageRepository: MessageRepository,
     private val userService: UserService,
     private val idGenerator: SnowflakeIdGenerator,
     private val groupMemberService: GroupMemberService,
@@ -151,5 +153,30 @@ class ChannelMemberServiceImpl (
         throw IllegalArgumentException("No user found with UUID $userId")
 
         return repository.existsByChannelAndUser(channel, user)
+    }
+
+    override fun getMembersByChannelIds(channelIds: List<Long>): List<ChannelMember> {
+        return repository.findAllWithUserByChannelIds(channelIds)
+    }
+
+    override fun updateLastReadMessage(channelId: Long, userId: UUID, messageId: Long) {
+        repository.updateLastReadMessage(channelId, userId, messageId)
+    }
+
+    @Transactional
+    override fun markRead(channelId: Long, userId: UUID, messageId: Long) {
+        val channel = channelRepository.findByIdOrNull(channelId)
+            ?: throw IllegalArgumentException("No channel found with id $channelId")
+        val user = userService.getUserById(userId)
+            ?: throw IllegalArgumentException("No user found with UUID $userId")
+
+        if (!repository.existsByChannelAndUser(channel, user)) {
+            throw IllegalArgumentException("You are not a member of this channel")
+        }
+        if (!messageRepository.existsByIdAndChannel_Id(messageId, channelId)) {
+            throw IllegalArgumentException("Message $messageId does not belong to channel $channelId")
+        }
+
+        repository.updateLastReadMessage(channelId, userId, messageId)
     }
 }

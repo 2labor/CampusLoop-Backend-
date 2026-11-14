@@ -18,7 +18,7 @@ class RedisGeoStoriesRepository (
     fun addStoryLocation(storyId: UUID, latitude: Double, longitude: Double) {
         redisTemplate.opsForGeo().add(
             key,
-            Point(latitude, longitude),
+            Point(longitude, latitude),
             storyId.toString(),
         )
     }

@@ -1,11 +1,14 @@
 package com.example.project.campusloop.controller
 
 import com.example.project.campusloop.domain.dto.ChannelResponse
+import com.example.project.campusloop.domain.dto.DirectChannelResponse
+import com.example.project.campusloop.domain.mapper.ChannelMapper
 import com.example.project.campusloop.domain.request.CreateChannelRequest
 import com.example.project.campusloop.domain.request.EditChannelRequest
 import com.example.project.campusloop.service.ChannelService
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -22,7 +25,8 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/v1/channels")
 class ChannelController (
-    private val service: ChannelService
+    private val service: ChannelService,
+    private val mapper: ChannelMapper
 ) {
     @PostMapping
     fun createChannel(
@@ -80,5 +84,14 @@ class ChannelController (
     ): ResponseEntity<ChannelResponse> {
         val channel = service.getChannelById(userId, channelId)
         return ResponseEntity.ok(ChannelResponse.from(channel))
+    }
+
+    @GetMapping("/my-channels")
+    fun getUserDirectChannels(
+        @AuthenticationPrincipal userId: UUID,
+        @PageableDefault(size = 20) pageable: Pageable
+    ): ResponseEntity<Slice<DirectChannelResponse>> {
+        val channelsSlice = service.getUserDirectChannels(userId, pageable)
+        return ResponseEntity.ok(channelsSlice.map { mapper.toResponse(it, userId) })
     }
 }

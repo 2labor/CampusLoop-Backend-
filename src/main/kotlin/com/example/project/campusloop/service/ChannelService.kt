@@ -1,9 +1,11 @@
 package com.example.project.campusloop.service
 
+import com.example.project.campusloop.domain.dto.DirectChannelSummary
 import com.example.project.campusloop.domain.entity.Channel
 import com.example.project.campusloop.domain.enum.ChannelType
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
+import java.time.Instant
 import java.util.UUID
 
 interface ChannelService {
@@ -13,4 +15,8 @@ interface ChannelService {
 
     fun getGroupChannels(operatorId: UUID, groupId: UUID, pageable: Pageable): Slice<Channel>
     fun getChannelById(operatorId: UUID, channelId: Long): Channel
+    fun getUserDirectChannels(userId: UUID, pageable: Pageable ): Slice<DirectChannelSummary>
+
+    fun onNewMessage(channelId: Long, messageId: Long, senderId: UUID, rawContent: String?, createdAt: Instant)
+    fun onMessageDelete(channelId: Long, deletedMessageId: Long)
 }

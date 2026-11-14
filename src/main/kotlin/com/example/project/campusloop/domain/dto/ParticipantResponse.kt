@@ -6,6 +6,7 @@ import java.util.UUID
 
 data class ParticipantResponse(
     val id: UUID,
+    val eventId: UUID,
     val userId: UUID,
     val username: String,
     val status: ParticipantStatus,

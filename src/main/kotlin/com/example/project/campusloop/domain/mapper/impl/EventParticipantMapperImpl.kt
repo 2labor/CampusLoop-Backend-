@@ -10,6 +10,7 @@ class EventParticipantMapperImpl : EventParticipantMapper {
     override fun toResponse(participant: EventParticipant): ParticipantResponse {
         return ParticipantResponse(
             id = participant.id ?: throw IllegalStateException("Participant ID cannot be null"),
+            eventId = participant.event.id ?: throw IllegalStateException("Event ID cannot be null"),
             userId = participant.user.id ?: throw IllegalStateException("Account ID cannot be null"),
             username = participant.user.username,
             status = participant.status,
