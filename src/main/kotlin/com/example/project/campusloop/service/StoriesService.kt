@@ -2,6 +2,7 @@ package com.example.project.campusloop.service
 
 import com.example.project.campusloop.domain.command.CreateStoryCommand
 import com.example.project.campusloop.domain.command.GetStoriesInRadiusCommand
+import com.example.project.campusloop.domain.dto.FriendStoryGroup
 import com.example.project.campusloop.domain.entity.Story
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
@@ -13,4 +14,6 @@ interface StoriesService {
     fun getStory(operatorId: UUID, storyId: UUID): Story
     fun getStoryInRadius(operatorId: UUID, command: GetStoriesInRadiusCommand): List<Story>
     fun getUsersStories(operatorId: UUID, userId: UUID, pageable: Pageable): Slice<Story>
+    fun getFriendsStoriesFeed(currentUserId: UUID): List<FriendStoryGroup>
+    fun markStoryAsViewed(currentUserId: UUID, storyId: UUID)
 }

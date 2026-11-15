@@ -1,5 +1,6 @@
 package com.example.project.campusloop.controller
 
+import com.example.project.campusloop.domain.dto.FriendStoryCircleResponse
 import com.example.project.campusloop.domain.dto.StoryMapMarkerResponse
 import com.example.project.campusloop.domain.dto.StoryResponse
 import com.example.project.campusloop.domain.mapper.StoryMapper
@@ -57,6 +58,23 @@ class StoryController (
         val story = service.getStory(userId, storyId)
 
         return ResponseEntity.ok(mapper.toResponse(story))
+    }
+
+    @GetMapping("/feed")
+    fun getStoriesFeed(
+        @AuthenticationPrincipal userId: UUID
+    ): ResponseEntity<List<FriendStoryCircleResponse>> {
+        val groups = service.getFriendsStoriesFeed(userId)
+        return ResponseEntity.ok(groups.map(mapper::toCircleResponse))
+    }
+
+    @PostMapping("/{storyId}/view")
+    fun markStoryViewed(
+        @AuthenticationPrincipal userId: UUID,
+        @PathVariable storyId: UUID
+    ): ResponseEntity<Void> {
+        service.markStoryAsViewed(userId, storyId)
+        return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/nearby")

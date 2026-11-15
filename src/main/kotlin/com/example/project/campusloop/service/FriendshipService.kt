@@ -20,4 +20,6 @@ interface FriendshipService {
     fun createFriendship(operatorId: UUID, targetId: UUID): Friendship
 
     fun isFriends(operatorId: UUID, targetId: UUID): Boolean
+
+    fun getAcceptedFriendIds(userId: UUID): Set<UUID>
 }

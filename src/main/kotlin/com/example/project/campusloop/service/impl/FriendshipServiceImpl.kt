@@ -204,6 +204,10 @@ class FriendshipServiceImpl (
         return operatorId == targetId || repository.existsAcceptedFriendship(operatorId, targetId)
     }
 
+    override fun getAcceptedFriendIds(userId: UUID): Set<UUID> {
+        return repository.findAcceptedFriendIds(userId).toSet()
+    }
+
     private fun findPendingRequest(currentId: UUID, requesterId: UUID): Friendship {
         val currentUser = userRepository.findById(currentId)
             .orElseThrow { IllegalArgumentException("No user with id $currentId") }

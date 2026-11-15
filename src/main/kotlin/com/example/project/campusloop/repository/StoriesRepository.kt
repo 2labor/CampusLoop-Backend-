@@ -1,6 +1,8 @@
 package com.example.project.campusloop.repository
 
 import com.example.project.campusloop.domain.entity.Story
+import com.example.project.campusloop.domain.enum.StoriesPrivacy
+import io.lettuce.core.dynamic.annotation.Param
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
@@ -29,4 +31,23 @@ interface StoriesRepository : JpaRepository<Story, UUID> {
     @Modifying
     @Query("DELETE FROM Story s WHERE s.expiresAt < :now")
     fun deleteAllExpiredStories(now: Instant): Int
+
+    @Query(
+        """
+        SELECT s FROM Story s
+        JOIN FETCH s.author
+        WHERE s.expiresAt > :now
+          AND s.author.id IN :friendIds
+          AND s.privacySettings IN :allowedPrivacies
+        ORDER BY s.createdAt ASC
+        """
+    )
+    fun findActiveFriendsStories(
+        @Param("friendIds") friendIds: Collection<UUID>,
+        @Param("allowedPrivacies") allowedPrivacies: Collection<StoriesPrivacy> = listOf(
+            StoriesPrivacy.EVERYONE,
+            StoriesPrivacy.FRIENDS
+        ),
+        @Param("now") now: Instant = Instant.now()
+    ): List<Story>
 }

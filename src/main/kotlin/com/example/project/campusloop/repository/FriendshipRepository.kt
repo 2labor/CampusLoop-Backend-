@@ -42,4 +42,20 @@ interface FriendshipRepository : JpaRepository<Friendship, UUID> {
       AND f.status = 'ACCEPTED'
 """)
     fun existsAcceptedFriendship(id1: UUID, id2: UUID): Boolean
+
+    @Query(
+        """
+    SELECT CASE 
+        WHEN f.initializer.id = :userId THEN f.target.id 
+        ELSE f.initializer.id 
+    END
+    FROM Friendship f
+    WHERE f.status = :status
+      AND (f.initializer.id = :userId OR f.target.id = :userId)
+    """
+    )
+    fun findAcceptedFriendIds(
+        @Param("userId") userId: UUID,
+        @Param("status") status: FriendshipStatus = FriendshipStatus.ACCEPTED
+    ): List<UUID>
 }

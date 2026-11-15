@@ -2,6 +2,9 @@ package com.example.project.campusloop.domain.mapper.impl
 
 import com.example.project.campusloop.domain.command.CreateStoryCommand
 import com.example.project.campusloop.domain.command.GetStoriesInRadiusCommand
+import com.example.project.campusloop.domain.dto.FriendStoryCircleResponse
+import com.example.project.campusloop.domain.dto.FriendStoryGroup
+import com.example.project.campusloop.domain.dto.StoryItemResponse
 import com.example.project.campusloop.domain.dto.StoryMapMarkerResponse
 import com.example.project.campusloop.domain.dto.StoryResponse
 import com.example.project.campusloop.domain.entity.Story
@@ -59,6 +62,26 @@ class StoryMapperImpl (
             latitude = request.latitude,
             longitude = request.longitude,
             radiusInMeters = request.radiusInMeters
+        )
+    }
+
+    override fun toCircleResponse(group: FriendStoryGroup): FriendStoryCircleResponse {
+        val author = group.author
+        return FriendStoryCircleResponse(
+            userId = author.id!!,
+            name = author.username,
+            hasUnseen = group.hasUnseen,
+            stories = group.stories.map { story ->
+                val viewed = group.lastViewedAt != null && !story.createdAt.isAfter(group.lastViewedAt)
+                StoryItemResponse(
+                    id = story.id!!,
+                    mediaFileKey = story.mediaFileKey,
+                    caption = story.caption,
+                    privacy = story.privacySettings,
+                    createdAt = story.createdAt,
+                    isViewed = viewed
+                )
+            }
         )
     }
 
